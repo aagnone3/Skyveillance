@@ -31,10 +31,12 @@ public:
   // Message constants for sending outgoing messages
   const char* MSG_ACK_REGISTRATION_REQ = "102|";
   const char* MSG_REQ_REGISTRATION = "100|";
+  const char* MSG_DATA = "200|";
 
   // Message header constants used for decoding incoming messages
   const char* H_ACK_REGISTRATION_REQ = "102";
   const char* H_REQ_REGISTRATION = "100";
+  const char* H_DATA = "200";
 
   // Returns the UDP handle
   EthernetUDP getUDP();
