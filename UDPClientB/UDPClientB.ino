@@ -21,11 +21,11 @@
 #include <UdpNetworkClient.h>
 
 // Byte array (hex) representation of the MAC address
-byte mac_addr[] = { 0x90, 0xA2, 0xDA, 0x00, 0x39, 0xAD }; // SM
+byte mac_addr[] = { 0x90, 0xA2, 0xDA, 0x0D, 0xA7, 0x30 }; // DL
 // Decimal representation of the MAC address
-int mac_num = 314; // decimal representation of 24 LSBs (lower 6 hex)
+int mac_num = 42800; // 16 LSBs
 // IP address of this device
-IPAddress my_ip(192, 168, 1, 222);
+IPAddress my_ip(192, 168, 1, 2);
 // IP address of the networked master device
 IPAddress master_ip(192, 168, 1, 111);
 // Ports to listen on and send to
@@ -35,7 +35,7 @@ unsigned int my_port_num = 8888,
 // EthernetUDP instance to handle sending and receiving packets over UDP
 EthernetUDP Udp;
 // UdpNetworkClient instance to handle network comm between the client and server
-UdpNetworkClient client(mac_num, my_ip, master_ip, my_port_num, master_port_num);
+UdpNetworkClient client(A0, mac_num, my_ip, master_ip, my_port_num, master_port_num);
 
 void setup() {
   // Start Serial, Ethernet, Udp, and Serial modules
@@ -51,12 +51,10 @@ void setup() {
 }
 
 void loop() {
-  // Check for incoming messages from new/current clients
-  client.checkForData();
 
   // Process new data as it comes in
-  if (client.hasData() == true) {
-    client.printMsgSourceInfo();
+  // This is a passive, light-weight client. It only sends data to the master when the master tells it to.
+  if (client.hasData()) {
     client.parseMessage();
   }
 

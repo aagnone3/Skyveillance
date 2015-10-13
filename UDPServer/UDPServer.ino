@@ -1,6 +1,3 @@
-#include <UdpNetworkClient.h>
-#include <UdpNetworkNode.h>
-
 /*
   UDPSendReceive.pde:
  This sketch receives UDP message strings, prints them to the serial port
@@ -22,22 +19,22 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <String.h>
+#include <UdpNetworkClient.h>
 #include <UdpNetworkServer.h>
 
 
 // Byte array (hex) representation of the MAC address
 byte mac_addr[] = { 0x90, 0xA2, 0xDA, 0x0D, 0xA6, 0xCF };
 // Decimal representation of the MAC address
-int mac_num = 910;
+int mac_num = 42703; // 16 LSBs
 // IP address of this device
 IPAddress my_ip(192, 168, 1, 111);
-IPAddress dest(192, 168, 1, 222);
 int port = 8888;
 // Local port to listen on
 unsigned int my_port_num = 8888;
 
 EthernetUDP Udp;
-UdpNetworkServer server(mac_num, my_ip, my_port_num);
+UdpNetworkServer server(A0, mac_num, my_ip, my_port_num);
 
 void setup() {
   // Start Serial, Ethernet, Udp, and Serial modules
@@ -47,20 +44,32 @@ void setup() {
 
   // Set the UDP handle for the server ONLY after the call to Udp.begin()
   server.setUdp(Udp);
+
+  // Register all clients before proceeding
+  // TODO verify NUM_CLIENTS is correct before running
+  server.registerClients();
+  delay(250);
+
+  // Send a synchronized ground voltage to all clients
+  server.syncGroundVoltage(0.147); // TODO dynamically determine this voltage
   
-  Serial.println("Server Initialized");
+  Serial.println("Server initialization complete");
+  Serial.println("==============================");
 }
 
 void loop() {
-  // Check for incoming messages from new/current clients
-  server.checkForData();
-
+  /*
   // Process new data as it comes in
-  if (server.hasData() == true) {
-    server.printMsgSourceInfo();
+  if (server.hasData()) {
     server.parseMessage();
   }
+  */
 
+  // Periodically poll clients for their readings
+  server.pollForData();
+  // Perform triangulation
+
+  // Delay to avoid spamming the network
   delay(100);
 }
 
