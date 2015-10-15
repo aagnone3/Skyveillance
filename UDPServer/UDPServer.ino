@@ -17,6 +17,7 @@
 
 // Include SPI library for Arduino versions later than 0018
 #include <SPI.h>
+#include <SD.h>
 #include <Ethernet.h>
 #include <String.h>
 #include <UdpNetworkClient.h>
@@ -32,7 +33,13 @@ IPAddress my_ip(192, 168, 1, 111);
 int port = 8888;
 // Local port to listen on
 unsigned int my_port_num = 8888;
+// Chip select to detect SD card presence
+const int chipSelect = 4;
 
+// Helper function declarations
+boolean initSDCard();
+
+// Global instances
 EthernetUDP Udp;
 UdpNetworkServer server(A0, mac_num, my_ip, my_port_num);
 
@@ -58,18 +65,33 @@ void setup() {
 }
 
 void loop() {
-  /*
-  // Process new data as it comes in
-  if (server.hasData()) {
-    server.parseMessage();
-  }
-  */
 
   // Periodically poll clients for their readings
   server.pollForData();
+  
   // Perform triangulation
 
   // Delay to avoid spamming the network
-  delay(100);
+  delay(250);
 }
+
+
+
+/*
+ * =====================================================
+ *            Helper function implementations
+ * =====================================================
+ * 
+ */
+
+ boolean initSDCard() {
+  Serial.println("Initializing SD card...");
+  if (!SD.begin(chipSelect)) {
+    Serial.println("Card failed, or not present");
+    return false;
+  }
+  Serial.println("Card successfully initialized");
+  return true;
+ }
+ 
 

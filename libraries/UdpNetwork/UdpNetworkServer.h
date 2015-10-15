@@ -7,17 +7,14 @@ periodically polls its clients for data, and performs the triangulation algorith
 #define udpnetworkserver_h
 
 #include "UdpNetworkNode.h"
-#include "IP_Port_Pair.h"
-#include "QueueList.h"
 
 class UdpNetworkServer : public UdpNetworkNode {
 
 private:
-	IP_Port_Pair* clients;
-  IP_Port_Pair* responses;
+	IPAddress* clients;
+  IPAddress* responses;
+  float* data;
   unsigned int cur_num_clients;
-  unsigned int cur_num_responses;
-
 
 public:
   // Constructor
@@ -43,9 +40,11 @@ public:
   // Poll through all clients for data readings
   void pollForData();
   //
-  bool clientHasResponded(IP_Port_Pair);
+  bool clientHasResponded(IPAddress);
   //
-  bool registeredClient(IP_Port_Pair);
+  bool clientHasRegistered(IPAddress);
+  //
+  void clearResponses();
 };
 
 #endif

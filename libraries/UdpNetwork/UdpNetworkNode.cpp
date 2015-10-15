@@ -96,9 +96,7 @@ void UdpNetworkNode::getNewMessage() {
   if (packet_size) {
     Udp.read(data_in, UDP_TX_PACKET_MAX_SIZE);
     new_message.parse(data_in, packet_size);
-    if (new_message.isValid()) {
-      has_data = true;
-    }
+      has_data = new_message.isValid();
   }
 }
 

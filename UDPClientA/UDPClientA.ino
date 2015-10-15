@@ -17,6 +17,7 @@
 
 // Include SPI library for Arduino versions later than 0018
 #include <SPI.h>
+#include <SD.h>
 #include <Ethernet.h>
 #include <UdpNetworkClient.h>
 

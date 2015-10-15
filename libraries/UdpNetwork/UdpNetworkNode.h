@@ -8,6 +8,7 @@ such as IP/Port identification and general message handling.
 #define udpnetworknode_h
 
 #include "Arduino.h"
+#include "SD.h"
 #include "Ethernet.h"
 #include "Message.h"
 #include "Protocol.h"

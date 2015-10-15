@@ -13,34 +13,34 @@ class Message {
 
 private:
 	// Header of the message
-	String header;
+	char header[4];
 	// Content of the message
 	char* contents;
   // Validation flag
   bool valid;
   // Raw byte array of the message
-  char* raw;
+  //char* raw;
   // String representation of the message
-  String message;
+  //String message;
   // size of the packet received
-  unsigned int packet_size;
+  //int packet_size;
 
 public:
   // Constructor
   Message();
-  Message(char*,unsigned int);
+  //Message(char*,unsigned int);
   ~Message();
 
   // Return the header
-  String getHeader() const;
-  // Set the header
-  void setHeader(String);
+  const char* getHeader() const;
   // Return the message contents
   char* getContents() const;
   // Set the message contents
   void setContents(char*);
+  //
+  void parseHeader(char*);
   // Parse the header and contents of the raw message
-  void parse(char*, unsigned int);
+  void parse(char*, int);
   // Compare the given header with this string's header
   bool hasHeader(const char* header);
   // Return whether the current data is valid for the network's protocol

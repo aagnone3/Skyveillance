@@ -4,57 +4,58 @@
 #include "Message.h"
 
   Message::Message() {
-    header = "n/a";
-    //contents = "n/a";
     contents = (char*)malloc(sizeof(char)*UDP_TX_PACKET_MAX_SIZE);
     valid = false;
   }
 
+  /*
   Message::Message(char* raw, unsigned int packet_size) {
     parse(raw, packet_size);
   }
+  */
 
   Message::~Message() {
     delete contents;
-    delete raw;
+    //delete raw;
     contents = NULL;
-    raw = NULL;
+    //raw = NULL;
   }
 
-  String Message::getHeader() const {
+  const char* Message::getHeader() const {
     return header;
   }
 
-  void Message::setHeader(String header) {
-    this->header = header;
-  }
-
   char* Message::getContents() const {
-    //char bytes[4];
-    //contents.toCharArray(bytes, 4);
     return contents;
   }
 
   void Message::setContents(char* contents) {
     this->contents = contents;
   }
+  
+  void Message::parseHeader(char* msg) {
+    header[0] = msg[0];
+    header[1] = msg[1];
+    header[2] = msg[2];
+  }
 
-  void Message::parse(char* raw, unsigned int packet_size) {
-    this->raw = raw;
-    this->packet_size = packet_size;
+  void Message::parse(char* raw, int packet_size) {
+    //this->raw = raw;
+    //this->packet_size = packet_size;
 
-    String msg(raw);
-    this->message = msg;
+    //String msg(raw);
+    //this->message = msg;
 
-    int pos = msg.indexOf("|");
-    if (pos > -1) valid = true;
-    this->header = msg.substring(0, pos);
-    //Serial.print("parse");Serial.println(this->header);
+    valid = true;
+    parseHeader(raw);
 
-    //contents = (char*)malloc(sizeof(char)*packet_size - 3);
-    for (int i = 0; i < packet_size - 3; ++i) {
-      this->contents[i] = raw[4 + i];
+    for (int i = 0; i < packet_size - 4; ++i) {
+      contents[i] = raw[4 + i];
     }
+
+    //Serial.print("Raw: ");Serial.print(raw);Serial.println();
+    //Serial.print("Header: ");Serial.print(header);Serial.println();
+	  //Serial.print("Contents:");Serial.print(contents);Serial.println();
   }
 
   bool Message::hasHeader(const char* h) {
