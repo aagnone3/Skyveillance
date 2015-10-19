@@ -66,6 +66,6 @@ void loop() {
   //client.sendReading();
 
   // Delay to avoid spamming the network
-  delay(100);
+  delay(250);
 }
 

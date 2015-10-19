@@ -60,6 +60,6 @@ void loop() {
   }
 
   // Delay to avoid spamming the network
-  delay(100);
+  delay(250);
 }
 

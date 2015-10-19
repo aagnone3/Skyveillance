@@ -50,6 +50,7 @@ void setup() {
   Udp.begin(my_port_num);
 
   // Set the UDP handle for the server ONLY after the call to Udp.begin()
+  Udp.flush();
   server.setUdp(Udp);
 
   // Register all clients before proceeding
@@ -67,12 +68,12 @@ void setup() {
 void loop() {
 
   // Periodically poll clients for their readings
-  server.pollForData();
+  server.getNewReadings();
   
   // Perform triangulation
 
   // Delay to avoid spamming the network
-  delay(250);
+  delay(500);
 }
 
 
@@ -94,4 +95,5 @@ void loop() {
   return true;
  }
  
+
 
