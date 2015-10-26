@@ -94,6 +94,7 @@ void UdpNetworkNode::getNewMessage() {
   has_data = false;
   packet_size = Udp.parsePacket();
   if (packet_size) {
+    //Serial.print("Mem: ");Serial.println(freeMemory());
     Udp.read(data_in, UDP_TX_PACKET_MAX_SIZE);
     new_message.parse(data_in, packet_size);
       has_data = new_message.isValid();

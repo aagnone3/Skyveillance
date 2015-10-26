@@ -15,6 +15,7 @@ private:
   IPAddress* responses;
   float* data;
   unsigned int cur_num_clients;
+  unsigned int cur_num_responses;
 
 public:
   // Constructor
@@ -28,6 +29,7 @@ public:
   IPAddress sender_ip;
   unsigned int sender_port;
   const int MIN_NUM_CLIENTS = 2;
+  const int MAX_WAIT_TIME_MS = 250;
 
   // Register all clients in the network
   void registerClients();
@@ -38,7 +40,13 @@ public:
   // Parse an incoming message from a client
   void parseMessage();
   // Poll through all clients for data readings
-  void pollForData();
+  void getNewReadings();
+  //
+  void pollClients();
+  //
+  void collectResponses();
+  //
+  void logAllReadings();
   //
   bool clientHasResponded(IPAddress);
   //

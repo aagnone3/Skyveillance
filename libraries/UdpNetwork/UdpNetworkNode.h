@@ -13,6 +13,7 @@ such as IP/Port identification and general message handling.
 #include "Message.h"
 #include "Protocol.h"
 #include "DataConverter.h"
+#include "MemoryFree.h"
 
 class UdpNetworkNode {
 
@@ -35,10 +36,14 @@ protected:
   unsigned int my_port;
   // Device's ground voltage to use
   float ground_voltage;
+  // Default ground voltage
+  float DEFAULT_GROUND_VOLTAGE;
   // Data Management handle
   DataConverter dconv;
   // Analog pin for making measurements
   int analog_pin;
+  // Time used for measuring differences in time
+  unsigned long elapsed_time;
 
 public:
   UdpNetworkNode();

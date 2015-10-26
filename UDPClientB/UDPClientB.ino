@@ -48,7 +48,9 @@ void setup() {
   client.setUdp(Udp);
   
   // Register with the network's master node before proceeding to loop()
-  client.registerWithNetwork();
+  //client.registerWithNetwork();
+
+  Serial.println("Waiting for contact from the master.");
 }
 
 void loop() {

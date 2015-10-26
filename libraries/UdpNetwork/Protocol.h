@@ -16,6 +16,7 @@ This file contains the definitions of message headers for the created protocol
 #define MSG_ACK_COMMON_GND "202|"
 #define MSG_REQ_RSS "203|"
 #define MSG_RSS "204|"
+#define MSG_REQ_COMMON_GND "205|"
 
 // Message header constants used for decoding incoming messages
 #define H_REQ_REGISTRATION "100"
@@ -28,5 +29,6 @@ This file contains the definitions of message headers for the created protocol
 #define H_ACK_COMMON_GND "202"
 #define H_REQ_RSS "203"
 #define H_RSS "204"
+#define H_REQ_COMMON_GND "205"
 
 #endif

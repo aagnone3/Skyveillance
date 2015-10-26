@@ -17,6 +17,10 @@ private:
 	IPAddress master_ip;
 	// Port number of the networked master device
   unsigned int master_port;
+  // Current max of readings
+  float max_reading;
+  // Number of readings in current window
+  unsigned int num_readings;
 
 public:
   // Constructor
@@ -32,6 +36,8 @@ public:
   // Register the device in the network by sending a registration request message
   // to the network's master device until an acknowledge message is received 
   void registerWithNetwork();
+  // Take a new voltage reading
+  void takeReading();
 };
 
 #endif

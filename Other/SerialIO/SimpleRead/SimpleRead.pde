@@ -14,7 +14,7 @@ String val;      // Data received from the serial port
 String last_val;
 PrintWriter data_log;
 PrintWriter general_log;
-final int NUM_DATA_POINTS = 20;
+final int NUM_DATA_POINTS = 2000;
 int cur_num_data_points;
 
 void setup() 
@@ -29,7 +29,7 @@ void setup()
   general_log = createWriter("General Log.txt");
   String portName = "COM1";
   for (String port : Serial.list()) {
-    if (port.equals("COM6")) {
+    if (port.equals("COM4")) {
       portName = port;
     }
   }
@@ -45,7 +45,7 @@ void draw()
   }
 
   if (val != null && !val.equals(last_val)) {
-    if (val.indexOf(",") > -1) {
+    //if (val.indexOf(",") > -1) {
       // If comma is found (i.e. data message)
       if (cur_num_data_points < NUM_DATA_POINTS) {
         println(val);
@@ -60,9 +60,9 @@ void draw()
         general_log.close();
         ++cur_num_data_points;
       }
-    } else {
-      general_log.println(val);
-    } 
+    //} else {
+    //  general_log.println(val);
+    //} 
   }
 }
 

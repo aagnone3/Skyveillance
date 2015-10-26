@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="13.3">
+  <zoom_level>6</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>0</x>
+      <y>30</y>
+      <w>384</w>
+      <h>276</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Base Class&gt;&gt;
+UdpNetworkNode
+--
+#udp: EthernetUDP
+#packet_size : int
+#data_in : char[]
+#new_message : Message
+#has_data : boolean
+#mac : unsigned int
+#my_ip : IPAddress
+#my_port : unsigned int
+#ground_voltage : float
+#dconv : DataConverter
+#analog_pin : int
+--
+#msgHeader(msg: String) : String
+#msgData(msg: String) : String
+#printMsgSourceInfo() : void
+#printIP(addr : IPAddress) : void
+#getNewMessage() : void
+#sendMessage(addr: IPAddress,
+             port: unsigned int,
+             header : const char*,
+             contents: const char) : void
+/#parseMessage()/
+--
+Responsibilities
+-- All shared data/activity of a node in the network, whether the node is
+   the master node or a client node.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>162</x>
+      <y>384</y>
+      <w>186</w>
+      <h>252</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Subclass&gt;&gt;
+UdpNetworkServer
+--
+-clients : IPAddress*
+-responses : IPAddress*
+-data : float*
+-cur_num_clients : unsigned int
+-cur_num_responses : unsigned int
++sender_ip : IPAddress
++sender_port : unsigned int
+_+MIN_NUM_CLIENTS : const int_
+--
++registerClients() : void
++processRegistrationRequest() : void
++syncGroundVoltage(voltage : float) : void
++parseMessage() : void
++getNewReadings() : void
++pollClients() : void
++collectAllReadings() : void
++logAllReadings() : void
++clientHasResponded(addr : IPAddress): bool
++clientHasRegistered(addr : IPAddress): bool
++clearResponses() : void
+--
+Responsibilities
+-- Data/activity that is specific to
+   the network master.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>6</x>
+      <y>384</y>
+      <w>126</w>
+      <h>114</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Subclass&gt;&gt;
+UdpNetworkClient
+--
+-is_registered : boolean
+-master_ip : IPAddress
+-master_port : unsigned int
+--
++parseMessage() : void
++registerWithNetwork() : void
+--
+Responsibilities
+-- Data/activity that is specific
+   to a network client.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>612</x>
+      <y>138</y>
+      <w>186</w>
+      <h>180</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Helper Class&gt;&gt;
+Message
+--
+-header: char*
+-contents: char*
+-valid: bool
+--
++getHeader() : const char*
++getContents() : char*
++setContents(c: char*): void
++parseHeader(c: char*): void
++parse(raw: char*, size: int): void
++hasHeader(header: const char*): bool
++isValid(): bool
++clear(): void
+--
+Responsibilities
+-- Handle the decoding and validation of
+   messages sent over the network.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>438</x>
+      <y>78</y>
+      <w>168</w>
+      <h>126</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Helper Class&gt;&gt;
+DataConverter
+--
+-d: Data
+--
++floatToBytes(f: float): char*
++bytesToFloat(bytes char*): float
+--
+Responsibilities
+-- Handle conversion between a float and
+   the 4 bytes that represent the float.
+   *NOTE that the conversion takes the 
+   encoded 4 bytes directly, before any
+   decoding to its human-readable form.</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>144</x>
+      <y>300</y>
+      <w>120</w>
+      <h>96</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;10.0;180.0;140.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>60</x>
+      <y>300</y>
+      <w>102</w>
+      <h>96</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>150.0;10.0;10.0;140.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>378</x>
+      <y>216</y>
+      <w>246</w>
+      <h>18</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;-</panel_attributes>
+    <additional_attributes>390.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>378</x>
+      <y>144</y>
+      <w>72</w>
+      <h>18</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;-</panel_attributes>
+    <additional_attributes>100.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>480</x>
+      <y>240</y>
+      <w>60</w>
+      <h>18</h>
+    </coordinates>
+    <panel_attributes>Protocol</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>378</x>
+      <y>240</y>
+      <w>114</w>
+      <h>18</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;-</panel_attributes>
+    <additional_attributes>170.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+</diagram>

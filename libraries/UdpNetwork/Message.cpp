@@ -4,7 +4,7 @@
 #include "Message.h"
 
   Message::Message() {
-    contents = (char*)malloc(sizeof(char)*UDP_TX_PACKET_MAX_SIZE);
+    contents = new char[UDP_TX_PACKET_MAX_SIZE];
     valid = false;
   }
 
@@ -15,10 +15,8 @@
   */
 
   Message::~Message() {
-    delete contents;
-    //delete raw;
+    delete[] contents;
     contents = NULL;
-    //raw = NULL;
   }
 
   const char* Message::getHeader() const {

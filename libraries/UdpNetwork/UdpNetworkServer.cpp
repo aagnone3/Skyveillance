@@ -12,18 +12,30 @@ UdpNetworkServer::UdpNetworkServer(int analog_pin,
     this->mac = mac_address;
     this->my_ip = my_ip_address;
     this->my_port = my_port_num;
-    this->ground_voltage = 0.0;
-    this->clients = (IPAddress*) malloc(sizeof(IPAddress) * MIN_NUM_CLIENTS);
-    this->responses = (IPAddress*) malloc(sizeof(IPAddress) * MIN_NUM_CLIENTS);
-    this->data = (float*) malloc(sizeof(float) * (MIN_NUM_CLIENTS + 1));
+    this->ground_voltage = DEFAULT_GROUND_VOLTAGE;
+
+    // Clients
+    IPAddress client1(192, 168, 1, 1);
+    IPAddress client2(192, 168, 1, 2);
+    IPAddress client3(192, 168, 1, 3);
+    IPAddress client4(192, 168, 1, 4);
+    this->clients = new IPAddress[MIN_NUM_CLIENTS];
+    this->clients[0] = client1;
+    this->clients[1] = client2;
+    //this->clients[2] = client3;
+    //this->clients[3] = client4;
+
+    this->responses = new IPAddress[MIN_NUM_CLIENTS];
+    this->data = new float[MIN_NUM_CLIENTS];
     this->cur_num_clients = 0;
+    this->cur_num_responses = 0;
     clearResponses();
 }
 
 UdpNetworkServer::~UdpNetworkServer() {
-  delete clients;
-  delete responses;
-  delete data;
+  delete[] clients;
+  delete[] responses;
+  delete[] data;
   clients = NULL;
   responses = NULL;
   data = NULL;
@@ -64,6 +76,7 @@ void UdpNetworkServer::processRegistrationRequest() {
 }
 
 void UdpNetworkServer::syncGroundVoltage(float voltage) {
+  ground_voltage = voltage;
   Serial.println("Synchronizing ground voltages...");
 
   // Send voltage to all clients
@@ -76,21 +89,17 @@ void UdpNetworkServer::syncGroundVoltage(float voltage) {
 
   // Wait for all clients to acknowledge setting the ground voltage
   clearResponses();
-  int cur_num_responses = 0;
+  cur_num_responses = 0;
   Serial.println("Listening for ACKs to the ground voltage...");
   while (cur_num_responses < MIN_NUM_CLIENTS) {
-	  if (hasData()) {
-			// Only listen for common ground ack messages
-			//Serial.println(new_message.getHeader());
-			if (strcmp(new_message.getHeader(),H_ACK_COMMON_GND) == 0) {
-			  // Verify that this client hasn't already ack'd the message
-			  if (!clientHasResponded(Udp.remoteIP())) {
-				  Udp.remoteIP().printTo(Serial);Serial.println(" has synced to the common ground voltage.");
-				  responses[cur_num_responses++] = Udp.remoteIP();
-			  } else {
-          Serial.println("Already gotchu");
-        }
-			}	  
+	  if (hasData() && strcmp(new_message.getHeader(),H_ACK_COMMON_GND) == 0) {
+		  // Verify that this client hasn't already ack'd the message
+		  if (!clientHasResponded(Udp.remoteIP())) {
+			  Udp.remoteIP().printTo(Serial);Serial.println(" has synced to the common ground voltage.");
+			  responses[cur_num_responses++] = Udp.remoteIP();
+		  } else {
+        Serial.println("Already gotchu");
+      } 
 		}
   }
   Serial.print("All clients are synced to the common ground voltage ");Serial.println(voltage, 4);
@@ -98,56 +107,84 @@ void UdpNetworkServer::syncGroundVoltage(float voltage) {
 }
 
 void UdpNetworkServer::parseMessage() {
-  if (strcmp(new_message.getHeader(),H_DATA) == 0) {
-    // Receive and process data
-    Serial.println(dconv.bytesToFloat(new_message.getContents()));
+  if (strcmp(new_message.getHeader(),H_RSS) == 0) {
+    // Verify that this client hasn't already ack'd the message
+    if (!clientHasResponded(Udp.remoteIP())) {
+      // Store the response and the data received
+      responses[cur_num_responses] = Udp.remoteIP();
+      data[cur_num_responses] = dconv.bytesToFloat(new_message.getContents());
+      //Udp.remoteIP().printTo(Serial);Serial.println();
+      //Serial.print(cur_num_responses+1);Serial.print("/");Serial.println(MIN_NUM_CLIENTS);
+      ++cur_num_responses;
+    }
+  } else if (strcmp(new_message.getHeader(), H_REQ_COMMON_GND) == 0) {
+    // Send back the common ground voltage to the client
+    if (ground_voltage == DEFAULT_GROUND_VOLTAGE) {
+      Serial.println("Sending default ground voltage...this is likely undesirable.");
+    }
+    Serial.println("Sending redundant ground voltage to client: ");Udp.remoteIP().printTo(Serial);Serial.println();
+    sendMessage(Udp.remoteIP(),
+                8888,
+                MSG_COMMON_GND,
+                dconv.floatToBytes(ground_voltage));
+  } else if (strcmp(new_message.getHeader(), H_REQ_REGISTRATION) == 0) {
+    Serial.println("Received new registration request.");
   } else {
-    Serial.println("Undefined message received!");
+    Serial.print("Undesired message received: ");
+    Serial.println(new_message.getHeader());
   }
 }
 
-void UdpNetworkServer::pollForData() {
+void UdpNetworkServer::getNewReadings() {
+  pollClients();
+  collectResponses();
+  logAllReadings();
+}
+
+void UdpNetworkServer::pollClients() {
   // Send request for data to all clients
-  Serial.print("Polling...");
+  //Serial.print("Polling...");
   for (int i = 0; i < MIN_NUM_CLIENTS; ++i) {
     sendMessage(clients[i],
                 8888,
                 MSG_REQ_RSS,
                 "");
   }
-  Serial.println("Waiting...");
+  // Reset the elapsed time counter for receiving message from clients
+  elapsed_time = millis();
 
+  //Serial.println("Waiting...");
+}
+
+void UdpNetworkServer::collectResponses() {
   clearResponses();
-  int cur_num_responses = 0;
+  cur_num_responses = 0;
   // Wait until all clients respond, collecting their data as they do
   while (cur_num_responses < MIN_NUM_CLIENTS) {
-    if (hasData() && strcmp(new_message.getHeader(),H_RSS) == 0) {
-        // Verify that this client hasn't already ack'd the message
-        if (!clientHasResponded(Udp.remoteIP())) {
-		      // Store the response and the data received
-          responses[cur_num_responses] = Udp.remoteIP();
-		      data[cur_num_responses] = dconv.bytesToFloat(new_message.getContents());
-          //Udp.remoteIP().printTo(Serial);
-          //Serial.print(cur_num_responses+1);Serial.print("/");Serial.println(MIN_NUM_CLIENTS);
-          //Serial.println("Data received: ");
-          //Serial.println(data[cur_num_responses], 4);
-          ++cur_num_responses;
-        }
+    if (hasData()) {
+      parseMessage();
+    } else if (millis() - elapsed_time < MAX_WAIT_TIME_MS) {
+      delay(25);
     } else {
-        delay(25);
+      // Waited too long for clients to respond, one may have restarted.
+      // Clear all responses and re-poll the clients
+      Serial.println("*** Timeout! ***");
+      clearResponses();
+      pollClients();
     }
   }
   // Master adds its own voltage reading
   data[cur_num_responses] = analogRead(analog_pin) * 5.0 / 1023;
+}
 
+void UdpNetworkServer::logAllReadings() {
   // Log the data to the serial port (use MATLAB for data logging)
   for (int i = 0; i < MIN_NUM_CLIENTS + 1; ++i) {
     Serial.print(data[i], 4);
     if (i < MIN_NUM_CLIENTS) Serial.print(",");
   }
   Serial.println();
-  Serial.println("=====================================");
-
+  //Serial.println("===");
 }
 
 bool UdpNetworkServer::clientHasResponded(IPAddress client) {

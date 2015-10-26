@@ -36,8 +36,7 @@ unsigned int my_port_num = 8888,
 // EthernetUDP instance to handle sending and receiving packets over UDP
 EthernetUDP Udp;
 // UdpNetworkClient instance to handle network comm between the client and server
-int sensorPin = A0;
-UdpNetworkClient client(A0, mac_num, my_ip, master_ip, my_port_num, master_port_num);
+UdpNetworkClient client(A5, mac_num, my_ip, master_ip, my_port_num, master_port_num);
 
 void setup() {
   // Start Serial, Ethernet, Udp, and Serial modules
@@ -49,7 +48,9 @@ void setup() {
   client.setUdp(Udp);
   
   // Register with the network's master node before proceeding to loop()
-  client.registerWithNetwork();
+  //client.registerWithNetwork();
+
+  Serial.println("Waiting for contact from the master.");
 }
 
 void loop() {
@@ -61,11 +62,6 @@ void loop() {
 
   // Take reading
   // Perform basic statistics for the given time window (i.e. update avg reading or something else)
-
-  // Send reading to the master
-  //client.sendReading();
-
-  // Delay to avoid spamming the network
-  delay(250);
+  client.takeReading();
 }
 
