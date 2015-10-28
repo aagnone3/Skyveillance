@@ -28,14 +28,14 @@ public:
   //  TODO maintain list of registered client nodes
   IPAddress sender_ip;
   unsigned int sender_port;
-  const int MIN_NUM_CLIENTS = 2;
+  const int NUM_CLIENTS = 2;
   const int MAX_WAIT_TIME_MS = 250;
 
   // Register all clients in the network
   void registerClients();
   // Process a registration request from a client
   void processRegistrationRequest();
-  // Send a synchronized ground voltage to all clients
+  // Send a synchronized noise floor to all clients
   void syncGroundVoltage(float);
   // Parse an incoming message from a client
   void parseMessage();
@@ -53,6 +53,8 @@ public:
   bool clientHasRegistered(IPAddress);
   //
   void clearResponses();
+  //
+  void reportNoiseFloors();
 };
 
 #endif

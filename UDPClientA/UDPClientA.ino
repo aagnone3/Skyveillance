@@ -47,8 +47,8 @@ void setup() {
   // Set the UDP handle for the server ONLY after the call to Udp.begin()
   client.setUdp(Udp);
   
-  // Register with the network's master node before proceeding to loop()
-  //client.registerWithNetwork();
+  // Set the noise floor for the current environment
+  client.acquireNoiseFloor();
 
   Serial.println("Waiting for contact from the master.");
 }

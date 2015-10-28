@@ -34,10 +34,10 @@ protected:
   IPAddress my_ip;
   // Device's port number
   unsigned int my_port;
-  // Device's ground voltage to use
-  float ground_voltage;
-  // Default ground voltage
-  float DEFAULT_GROUND_VOLTAGE;
+  // Device's noise floor to use
+  float noise_floor;
+  // Default noise floor
+  float DEFAULT_NOISE_FLOOR;
   // Data Management handle
   DataConverter dconv;
   // Analog pin for making measurements
@@ -64,11 +64,12 @@ public:
   unsigned int getPort();
   // Sets the device's port number
   void setPort(unsigned int);
-  // Return the ground voltage
-  float getGroundVoltage();
-  // Sets the ground voltage
-  void setGroundVoltage(float);
-
+  // Return the noise floor
+  float getNoiseFloor();
+  // Sets the noise floor
+  void setNoiseFloor(float);
+  // 
+  void acquireNoiseFloor();
   // Returns whether the received message is valid for the defined protocol
   //boolean isValidMsg(Message);
   // Returns the header code of the received message, according to the defined protocol
@@ -88,6 +89,8 @@ public:
   void sendMessage(IPAddress, unsigned int, const char*, const char*);
   // Virtual function to parse messages that is implemented by subclassses
   virtual void parseMessage();
+  //
+  void flush();
 
 
 };

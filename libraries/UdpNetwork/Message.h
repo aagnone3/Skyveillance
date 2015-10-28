@@ -18,6 +18,8 @@ private:
 	char* contents;
   // Validation flag
   bool valid;
+  //
+  IPAddress sender;
   // Raw byte array of the message
   //char* raw;
   // String representation of the message
@@ -38,9 +40,14 @@ public:
   // Set the message contents
   void setContents(char*);
   //
+  void clearMessage();
+  //
+  //
+  IPAddress getSender();
+  //
   void parseHeader(char*);
   // Parse the header and contents of the raw message
-  void parse(char*, int);
+  void parse(char*, int, IPAddress);
   // Compare the given header with this string's header
   bool hasHeader(const char* header);
   // Return whether the current data is valid for the network's protocol

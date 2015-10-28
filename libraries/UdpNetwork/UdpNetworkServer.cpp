@@ -12,23 +12,27 @@ UdpNetworkServer::UdpNetworkServer(int analog_pin,
     this->mac = mac_address;
     this->my_ip = my_ip_address;
     this->my_port = my_port_num;
-    this->ground_voltage = DEFAULT_GROUND_VOLTAGE;
+    this->noise_floor = DEFAULT_NOISE_FLOOR;
 
     // Clients
     IPAddress client1(192, 168, 1, 1);
     IPAddress client2(192, 168, 1, 2);
     IPAddress client3(192, 168, 1, 3);
     IPAddress client4(192, 168, 1, 4);
-    this->clients = new IPAddress[MIN_NUM_CLIENTS];
+    this->clients = new IPAddress[NUM_CLIENTS];
     this->clients[0] = client1;
     this->clients[1] = client2;
     //this->clients[2] = client3;
     //this->clients[3] = client4;
 
-    this->responses = new IPAddress[MIN_NUM_CLIENTS];
-    this->data = new float[MIN_NUM_CLIENTS];
+    this->responses = new IPAddress[NUM_CLIENTS];
+    this->data = new float[NUM_CLIENTS];
     this->cur_num_clients = 0;
-    this->cur_num_responses = 0;
+
+    // Flush the incoming buffer of any messages leftover from a previous run
+    flush();
+
+    // Clear any previous responses
     clearResponses();
 }
 
@@ -44,7 +48,7 @@ UdpNetworkServer::~UdpNetworkServer() {
 void UdpNetworkServer::registerClients() {
   for (int i = 0; i < 10; ++i) Serial.println("=============================");
   Serial.println("Registering all clients...");
-  while (cur_num_clients < MIN_NUM_CLIENTS) {
+  while (cur_num_clients < NUM_CLIENTS) {
     if (hasData()) {
       if (strcmp(new_message.getHeader(),H_REQ_REGISTRATION) == 0) {
         processRegistrationRequest();
@@ -76,59 +80,64 @@ void UdpNetworkServer::processRegistrationRequest() {
 }
 
 void UdpNetworkServer::syncGroundVoltage(float voltage) {
-  ground_voltage = voltage;
-  Serial.println("Synchronizing ground voltages...");
+  noise_floor = voltage;
+  Serial.println("Synchronizing noise floors...");
 
   // Send voltage to all clients
-  for (int i = 0; i < MIN_NUM_CLIENTS; ++i) {
+  for (int i = 0; i < NUM_CLIENTS; ++i) {
     sendMessage(clients[i],
                 8888,
-                MSG_COMMON_GND,
+                MSG_NOISE_FLOOR,
                 dconv.floatToBytes(voltage));
   }
 
-  // Wait for all clients to acknowledge setting the ground voltage
+  // Wait for all clients to acknowledge setting the noise floor
   clearResponses();
-  cur_num_responses = 0;
-  Serial.println("Listening for ACKs to the ground voltage...");
-  while (cur_num_responses < MIN_NUM_CLIENTS) {
-	  if (hasData() && strcmp(new_message.getHeader(),H_ACK_COMMON_GND) == 0) {
+  Serial.println("Listening for ACKs to the noise floor...");
+  while (cur_num_responses < NUM_CLIENTS) {
+	  if (hasData() && strcmp(new_message.getHeader(),H_ACK_NOISE_FLOOR) == 0) {
 		  // Verify that this client hasn't already ack'd the message
 		  if (!clientHasResponded(Udp.remoteIP())) {
-			  Udp.remoteIP().printTo(Serial);Serial.println(" has synced to the common ground voltage.");
+			  Udp.remoteIP().printTo(Serial);Serial.println(" has synced to the common noise floor.");
 			  responses[cur_num_responses++] = Udp.remoteIP();
 		  } else {
         Serial.println("Already gotchu");
       } 
 		}
   }
-  Serial.print("All clients are synced to the common ground voltage ");Serial.println(voltage, 4);
+  Serial.print("All clients are synced to the common noise floor ");Serial.println(voltage, 4);
   Serial.println("=========================================================");
 }
 
 void UdpNetworkServer::parseMessage() {
+  IPAddress sender = new_message.getSender();
   if (strcmp(new_message.getHeader(),H_RSS) == 0) {
     // Verify that this client hasn't already ack'd the message
-    if (!clientHasResponded(Udp.remoteIP())) {
+    if (!clientHasResponded(sender)) {
       // Store the response and the data received
-      responses[cur_num_responses] = Udp.remoteIP();
+      responses[cur_num_responses] = sender;
       data[cur_num_responses] = dconv.bytesToFloat(new_message.getContents());
-      //Udp.remoteIP().printTo(Serial);Serial.println();
-      //Serial.print(cur_num_responses+1);Serial.print("/");Serial.println(MIN_NUM_CLIENTS);
-      ++cur_num_responses;
+      //Udp.remoteIP().printTo(Serial);Serial.print("    ");Serial.print(dconv.bytesToFloat(new_message.getContents()));Serial.println();
+      cur_num_responses += 1;
+    } else {
+      sender.printTo(Serial);Serial.println(" redundant response");
     }
-  } else if (strcmp(new_message.getHeader(), H_REQ_COMMON_GND) == 0) {
-    // Send back the common ground voltage to the client
-    if (ground_voltage == DEFAULT_GROUND_VOLTAGE) {
-      Serial.println("Sending default ground voltage...this is likely undesirable.");
+  /*} else if (strcmp(new_message.getHeader(), H_REQ_NOISE_FLOOR) == 0) {
+    // Send back the common noise floor to the client
+    if (noise_floor == DEFAULT_NOISE_FLOOR) {
+      Serial.println("Sending default noise floor...this is likely undesirable.");
     }
-    Serial.println("Sending redundant ground voltage to client: ");Udp.remoteIP().printTo(Serial);Serial.println();
+    Serial.println("Sending redundant noise floor to client: ");Udp.remoteIP().printTo(Serial);Serial.println();
     sendMessage(Udp.remoteIP(),
                 8888,
-                MSG_COMMON_GND,
-                dconv.floatToBytes(ground_voltage));
+                MSG_NOISE_FLOOR,
+                dconv.floatToBytes(noise_floor));
+    */
   } else if (strcmp(new_message.getHeader(), H_REQ_REGISTRATION) == 0) {
     Serial.println("Received new registration request.");
+  } else if (strcmp(new_message.getHeader(), H_NOISE_FLOOR) == 0) {
+    // Noise floor received from a client
+    Udp.remoteIP().printTo(Serial);Serial.print(" noise floor: ");Serial.println(dconv.bytesToFloat(new_message.getContents()));
   } else {
     Serial.print("Undesired message received: ");
     Serial.println(new_message.getHeader());
@@ -136,15 +145,16 @@ void UdpNetworkServer::parseMessage() {
 }
 
 void UdpNetworkServer::getNewReadings() {
+  flush();
+  clearResponses();
   pollClients();
   collectResponses();
-  logAllReadings();
 }
 
 void UdpNetworkServer::pollClients() {
   // Send request for data to all clients
   //Serial.print("Polling...");
-  for (int i = 0; i < MIN_NUM_CLIENTS; ++i) {
+  for (int i = 0; i < NUM_CLIENTS; ++i) {
     sendMessage(clients[i],
                 8888,
                 MSG_REQ_RSS,
@@ -152,43 +162,45 @@ void UdpNetworkServer::pollClients() {
   }
   // Reset the elapsed time counter for receiving message from clients
   elapsed_time = millis();
-
   //Serial.println("Waiting...");
 }
 
 void UdpNetworkServer::collectResponses() {
-  clearResponses();
-  cur_num_responses = 0;
   // Wait until all clients respond, collecting their data as they do
-  while (cur_num_responses < MIN_NUM_CLIENTS) {
+  while (cur_num_responses < NUM_CLIENTS && millis() - elapsed_time < MAX_WAIT_TIME_MS) {
     if (hasData()) {
       parseMessage();
-    } else if (millis() - elapsed_time < MAX_WAIT_TIME_MS) {
-      delay(25);
     } else {
-      // Waited too long for clients to respond, one may have restarted.
-      // Clear all responses and re-poll the clients
-      Serial.println("*** Timeout! ***");
-      clearResponses();
-      pollClients();
+      delay(25);
     }
   }
-  // Master adds its own voltage reading
-  data[cur_num_responses] = analogRead(analog_pin) * 5.0 / 1023;
+
+  // Determine whether success or a timeout has occured
+  if (cur_num_responses < NUM_CLIENTS) {
+    // Waited too long for clients to respond, one may have restarted.
+    // Clear all responses and re-poll the clients
+    Serial.println("*** Timeout! ***");
+    //getNewReadings();
+  } else {
+    // Master adds its own voltage reading
+    data[cur_num_responses] = analogRead(analog_pin) * 5.0 / 1023;
+    // Log the data to the serial port for processing
+    logAllReadings();
+  }
 }
 
 void UdpNetworkServer::logAllReadings() {
-  // Log the data to the serial port (use MATLAB for data logging)
-  for (int i = 0; i < MIN_NUM_CLIENTS + 1; ++i) {
+  // Log the data to the serial port (use MATLAB/Processing for data logging)
+  for (int i = 0; i < NUM_CLIENTS + 1; ++i) {
     Serial.print(data[i], 4);
-    if (i < MIN_NUM_CLIENTS) Serial.print(",");
+    if (i < NUM_CLIENTS) Serial.print(",");
   }
   Serial.println();
   //Serial.println("===");
 }
 
 bool UdpNetworkServer::clientHasResponded(IPAddress client) {
-  for (int i = 0; i < MIN_NUM_CLIENTS; ++i) {
+  for (int i = 0; i < NUM_CLIENTS; ++i) {
     if (client == responses[i]) {
       return true;
     }
@@ -197,7 +209,7 @@ bool UdpNetworkServer::clientHasResponded(IPAddress client) {
 }
 
 bool UdpNetworkServer::clientHasRegistered(IPAddress client) {
-  for (int i = 0; i < MIN_NUM_CLIENTS; ++i) {
+  for (int i = 0; i < NUM_CLIENTS; ++i) {
     if (client == clients[i]) {
       return true;
     }
@@ -207,9 +219,39 @@ bool UdpNetworkServer::clientHasRegistered(IPAddress client) {
 
 void UdpNetworkServer::clearResponses() {
   int i;
-  for (i = 0; i < MIN_NUM_CLIENTS; ++i) {
+  for (i = 0; i < NUM_CLIENTS; ++i) {
     responses[i] = INADDR_NONE;
     data[i] = 0.0;
   }
   data[i] = 0.0;
+  cur_num_responses = 0;
+}
+
+void UdpNetworkServer::reportNoiseFloors() {
+  // Send voltage to all clients
+  for (int i = 0; i < NUM_CLIENTS; ++i) {
+    sendMessage(clients[i],
+                8888,
+                MSG_REQ_NOISE_FLOOR,
+                "");
+  }
+  Serial.println("Collecting noise floors...");
+  
+  // Announce own noise floor
+  my_ip.printTo(Serial);Serial.print(" noise floor: ");Serial.println(noise_floor);
+
+  // Wait for all clients to respond with the noise floor
+  cur_num_responses = 0;
+  while (cur_num_responses < NUM_CLIENTS) {
+    if (hasData() && strcmp(new_message.getHeader(),H_NOISE_FLOOR) == 0) {
+      // Verify that this client hasn't already ack'd the message
+      if (!clientHasResponded(Udp.remoteIP())) {
+        responses[cur_num_responses] = Udp.remoteIP();
+        Udp.remoteIP().printTo(Serial);Serial.print(" noise floor: ");Serial.println(dconv.bytesToFloat(new_message.getContents()));
+        cur_num_responses++;
+      }
+    }
+  }
+  clearResponses();
+  Serial.println("===========================");
 }

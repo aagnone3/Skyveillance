@@ -37,12 +37,24 @@ void UdpNetworkNode::setPort(unsigned int port) {
   this->my_port = port;
 }
 
-float UdpNetworkNode::getGroundVoltage() {
-  return ground_voltage;
+float UdpNetworkNode::getNoiseFloor() {
+  return noise_floor;
 }
 
-void UdpNetworkNode::setGroundVoltage(float ground_voltage) {
-  this->ground_voltage = ground_voltage;
+void UdpNetworkNode::acquireNoiseFloor() {
+  //Serial.print("Sampling for noise floor...");
+  for (int i = 0; i < 5000; i += 1) {
+    float sample = analogRead(analog_pin) * 5.0 / 1023;
+    // Compute a continuous average without allocating memory for all the data points
+    noise_floor = (noise_floor * i + sample) / (i + 1);
+  }
+  // Write out the noise floor to the antenna
+  analogWrite(9, noise_floor);
+  Serial.println(noise_floor);
+}
+
+void UdpNetworkNode::setNoiseFloor(float noise_floor) {
+  this->noise_floor = noise_floor;
 }
 
 /*
@@ -94,10 +106,9 @@ void UdpNetworkNode::getNewMessage() {
   has_data = false;
   packet_size = Udp.parsePacket();
   if (packet_size) {
-    //Serial.print("Mem: ");Serial.println(freeMemory());
     Udp.read(data_in, UDP_TX_PACKET_MAX_SIZE);
-    new_message.parse(data_in, packet_size);
-      has_data = new_message.isValid();
+    new_message.parse(data_in, packet_size, Udp.remoteIP());
+    has_data = new_message.isValid();
   }
 }
 
@@ -109,3 +120,8 @@ void UdpNetworkNode::sendMessage(IPAddress ip, unsigned int port, const char* he
 }
 
 void UdpNetworkNode::parseMessage() {}
+
+void UdpNetworkNode::flush() {
+  // Dump all pending messages to flush the incoming buffer
+  while(hasData());
+}

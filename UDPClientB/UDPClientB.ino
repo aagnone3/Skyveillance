@@ -47,21 +47,21 @@ void setup() {
   // Set the UDP handle for the server ONLY after the call to Udp.begin()
   client.setUdp(Udp);
   
-  // Register with the network's master node before proceeding to loop()
-  //client.registerWithNetwork();
+  // Set the noise floor for the current environment
+  client.acquireNoiseFloor();
 
   Serial.println("Waiting for contact from the master.");
 }
 
 void loop() {
-
   // Process new data as it comes in
   // This is a passive, light-weight client. It only sends data to the master when the master tells it to.
   if (client.hasData()) {
     client.parseMessage();
   }
 
-  // Delay to avoid spamming the network
-  delay(250);
+  // Take reading
+  // Perform basic statistics for the given time window (i.e. update avg reading or something else)
+  client.takeReading();
 }
 

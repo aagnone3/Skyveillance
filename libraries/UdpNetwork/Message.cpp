@@ -37,12 +37,28 @@
     header[2] = msg[2];
   }
 
-  void Message::parse(char* raw, int packet_size) {
-    //this->raw = raw;
-    //this->packet_size = packet_size;
+  void Message::clearMessage() {
+    // Clear message header
+    header[0] = '4';
+    header[1] = '0';
+    header[2] = '4';
 
-    //String msg(raw);
-    //this->message = msg;
+    // Clear message contents
+    for (int i = 0; i < UDP_TX_PACKET_MAX_SIZE; ++i) {
+      contents[i] = '9';
+    }
+
+    // Clear the sender IPAddress
+    sender = INADDR_NONE;
+  }
+
+  IPAddress Message::getSender() {
+    return sender;
+  }
+
+  void Message::parse(char* raw, int packet_size, IPAddress sender) {
+    clear();
+    this->sender = sender;
 
     valid = true;
     parseHeader(raw);
