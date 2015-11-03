@@ -1,67 +1,161 @@
-/*
-  UDPSendReceive.pde:
- This sketch receives UDP message strings, prints them to the serial port
- and sends an "acknowledge" string back to the sender
-
- A Processing sketch is included at the end of file that can be used to send
- and received messages for testing with a computer.
-
- created 21 Aug 2010
- by Michael Margolis
- 
- modified 5 December 2015
- by Anthony Agnone
-
- This code is in the public domain.
- */
-
-// Include SPI library for Arduino versions later than 0018
 #include <SPI.h>
-#include <SD.h>
 #include <Ethernet.h>
-#include <UdpNetworkClient.h>
+#include <EthernetUdp.h>
+#include <Protocol.h>
+#include <DataConverter.h>
 
-// Byte array (hex) representation of the MAC address
-byte mac_addr[] = { 0x90, 0xA2, 0xDA, 0x00, 0x31, 0x4D }; // AA
-// Decimal representation of the MAC address
-int mac_num = 12621; // 16 LSBs
-// IP address of this device
-IPAddress my_ip(192, 168, 1, 1);
-// IP address of the networked master device
-IPAddress master_ip(192, 168, 1, 111);
-// Ports to listen on and send to
-unsigned int my_port_num = 8888,
-             master_port_num = 8888;
-             
-// EthernetUDP instance to handle sending and receiving packets over UDP
+// Enter a MAC address and IP address for your controller below.
+// The IP address will be dependent on your local network:
+byte mac[] = {
+  0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA
+};
+IPAddress ip(192, 168, 1, 1);
+unsigned int local_port = 8888;
+int analog_pin = A5;
+int packet_size;
+unsigned int num_data_points;
+const unsigned int MIN_DATA_POINTS = 100;
+unsigned int max_reading;
+unsigned int MAX_INT = (2 << 16) - 1;
+
+// buffers for receiving and sending data
+char header[4];
+char raw_message[UDP_TX_PACKET_MAX_SIZE];
+char data[UDP_TX_PACKET_MAX_SIZE];
+
+// An EthernetUDP instance to let us send and receive packets over UDP
 EthernetUDP Udp;
-// UdpNetworkClient instance to handle network comm between the client and server
-UdpNetworkClient client(A5, mac_num, my_ip, master_ip, my_port_num, master_port_num);
+DataConverter dconv;
+
+// Function headers
+boolean messageReceived();
+void processMessage();
+void sendMaxReading();
+void parseRawMessage();
+void determineNoiseFloor();
+void printSource();
 
 void setup() {
-  // Start Serial, Ethernet, Udp, and Serial modules
+  // start the Ethernet and UDP:
+  Ethernet.begin(mac, ip);
+  Udp.begin(local_port);
   Serial.begin(9600);
-  Ethernet.begin(mac_addr, my_ip);
-  Udp.begin(my_port_num);
 
-  // Set the UDP handle for the server ONLY after the call to Udp.begin()
-  client.setUdp(Udp);
-  
-  // Set the noise floor for the current environment
-  client.acquireNoiseFloor();
+  header[0] = '0';
+  header[1] = '0';
+  header[2] = '0';
 
-  Serial.println("Waiting for contact from the master.");
+  Serial.println("Setup complete.");
 }
 
 void loop() {
-  // Process new data as it comes in
-  // This is a passive, light-weight client. It only sends data to the master when the master tells it to.
-  if (client.hasData()) {
-    client.parseMessage();
+  // if there's data available, read a packet
+  if (messageReceived() && num_data_points > MIN_DATA_POINTS) {
+    processMessage();
   }
 
-  // Take reading
-  // Perform basic statistics for the given time window (i.e. update avg reading or something else)
-  client.takeReading();
+  // Take a new reading from the analog pin
+  readVoltage();
+
+  // Wait for ADC to settle
+  delay(2);
 }
+
+
+/* ====================================
+     Helper function implementations 
+   ====================================         
+*/
+
+//
+void readVoltage() {
+  int new_reading = analogRead(analog_pin);
+  if (new_reading > max_reading) {
+    max_reading = new_reading;
+  }
+  num_data_points = ++num_data_points % MAX_INT;
+}
+
+//
+boolean messageReceived() {
+  packet_size = Udp.parsePacket();
+  return packet_size > 0;
+}
+
+//
+void processMessage() {
+
+    parseRawMessage();
+
+    if (strcmp(header,H_REQ_RSS) == 0) {
+      Serial.println("=====================");
+      Serial.print(num_data_points);Serial.print(" points -> ");Serial.println(max_reading * 5.0 / 1023); 
+      // Send back data
+      sendMaxReading();
+      // Reset max
+      max_reading = 0;
+      // Reset data points counter
+      num_data_points = 0;
+    } else if (strcmp(header,H_REQ_NOISE_FLOOR) == 0) {
+      // Poll for the noise floor
+      determineNoiseFloor();
+      // Reply to the sender with the noise floor
+      sendMaxReading();
+    }
+}
+
+//
+void sendMaxReading() {
+    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+    Udp.write(MSG_RSS);
+    Udp.write(dconv.floatToBytes(max_reading * 5.0 / 1023));
+    Udp.endPacket();
+}
+
+void parseRawMessage() {
+    // read the packet into packetBufffer
+    Udp.read(raw_message, UDP_TX_PACKET_MAX_SIZE);
+    
+    // Parse header
+    for (int i = 0; i < 3; i += 1) {
+      header[i] = raw_message[i];
+    }
+
+    // Parse data
+    for (int i = 0; i < packet_size - 4; i += 1) {
+      data[i] = raw_message[4 + i];
+    }
+}
+
+//
+void determineNoiseFloor() {
+  // Poll for 5 seconds, and store the max reading as the noise floor
+  unsigned long start_time = millis();
+  num_data_points = 0;
+  Serial.println("Polling for noise floor...");
+  while (millis() - start_time < 5000) {
+     readVoltage();
+  }
+  Serial.print("Noise floor: ");Serial.println(max_reading * 5.0 / 1023);
+  sendMaxReading();
+}
+
+//
+void printSource() {
+    Serial.print("Received packet of size ");
+    Serial.println(packet_size);
+    Serial.print("From ");
+    IPAddress remote = Udp.remoteIP();
+    for (int i = 0; i < 4; i++)
+    {
+      Serial.print(remote[i], DEC);
+      if (i < 3)
+      {
+        Serial.print(".");
+      }
+    }
+    Serial.print(", port ");
+    Serial.println(Udp.remotePort());
+}
+
 
