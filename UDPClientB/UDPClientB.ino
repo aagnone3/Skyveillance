@@ -91,9 +91,10 @@ void processMessage() {
         // Parse the message's header and data fields
         parseMessage();
         // Process the message, according to its header
-        if (strcmp(header,H_REQ_RSS) == 0) {
-          Serial.println("=====================");
-          Serial.print(num_data_points);Serial.print(" points -> ");Serial.println(max_reading * 5.0 / 1023); 
+        if (strcmp(header,H_REQ_PIN_VOLTAGE) == 0) {
+          Serial.print(num_data_points);
+          //Serial.println("=====================");
+          //Serial.print(num_data_points);Serial.print(" points -> ");Serial.println(max_reading * 5.0 / 1023); 
           // Send back data
           sendMaxReading();
           // Reset max
@@ -116,7 +117,7 @@ void processMessage() {
 void sendMaxReading() {
   Serial.println("Sending reading");
     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-    Udp.write(MSG_RSS);
+    Udp.write(MSG_PIN_VOLTAGE);
     Udp.write(dconv.floatToBytes(max_reading * 5.0 / 1023));
     Udp.endPacket();
 }

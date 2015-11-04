@@ -28,12 +28,15 @@ EthernetUDP Udp;
 DataConverter dconv;
 
 // Function headers
-boolean messageReceived();
+void readVoltage();
 void processMessage();
 void sendMaxReading();
-void parseRawMessage();
+void parseMessage();
+void clearBuffer();
 void determineNoiseFloor();
 void printSource();
+boolean messageReceived();
+boolean isValidMsg();
 
 void setup() {
   // start the Ethernet and UDP:
@@ -77,45 +80,50 @@ void readVoltage() {
 }
 
 //
-boolean messageReceived() {
-  packet_size = Udp.parsePacket();
-  return packet_size > 0;
-}
-
-//
 void processMessage() {
 
-    parseRawMessage();
+    // read the packet into packetBufffer
+    Udp.read(raw_message, UDP_TX_PACKET_MAX_SIZE);
 
-    if (strcmp(header,H_REQ_RSS) == 0) {
-      Serial.println("=====================");
-      Serial.print(num_data_points);Serial.print(" points -> ");Serial.println(max_reading * 5.0 / 1023); 
-      // Send back data
-      sendMaxReading();
-      // Reset max
-      max_reading = 0;
-      // Reset data points counter
-      num_data_points = 0;
-    } else if (strcmp(header,H_REQ_NOISE_FLOOR) == 0) {
-      // Poll for the noise floor
-      determineNoiseFloor();
-      // Reply to the sender with the noise floor
-      sendMaxReading();
+    // Only process recognized messages according to the protocol
+    if (isValidMessage()) {
+
+        // Parse the message's header and data fields
+        parseMessage();
+        // Process the message, according to its header
+        if (strcmp(header,H_REQ_PIN_VOLTAGE) == 0) {
+          Serial.print(num_data_points);
+          //Serial.println("=====================");
+          //Serial.print(num_data_points);Serial.print(" points -> ");Serial.println(max_reading * 5.0 / 1023); 
+          // Send back data
+          sendMaxReading();
+          // Reset max
+          max_reading = 0;
+          // Reset data points counter
+          num_data_points = 0;
+        } else if (strcmp(header,H_REQ_NOISE_FLOOR) == 0) {
+          // Poll for the noise floor
+          determineNoiseFloor();
+          // Reply to the sender with the noise floor
+          sendMaxReading();
+        }
     }
+
+    // Clear the buffer
+    clearBuffer();
 }
 
 //
 void sendMaxReading() {
+  Serial.println("Sending reading");
     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-    Udp.write(MSG_RSS);
+    Udp.write(MSG_PIN_VOLTAGE);
     Udp.write(dconv.floatToBytes(max_reading * 5.0 / 1023));
     Udp.endPacket();
 }
 
-void parseRawMessage() {
-    // read the packet into packetBufffer
-    Udp.read(raw_message, UDP_TX_PACKET_MAX_SIZE);
-    
+void parseMessage() {
+
     // Parse header
     for (int i = 0; i < 3; i += 1) {
       header[i] = raw_message[i];
@@ -125,6 +133,13 @@ void parseRawMessage() {
     for (int i = 0; i < packet_size - 4; i += 1) {
       data[i] = raw_message[4 + i];
     }
+}
+
+//
+void clearBuffer() {
+  for (int i = 0; i < UDP_TX_PACKET_MAX_SIZE; i += 1) {
+    raw_message[i] = '0';
+  }
 }
 
 //
@@ -156,6 +171,17 @@ void printSource() {
     }
     Serial.print(", port ");
     Serial.println(Udp.remotePort());
+}
+
+//
+boolean messageReceived() {
+  packet_size = Udp.parsePacket();
+  return packet_size > 0;
+}
+
+//
+boolean isValidMessage() {
+  return (packet_size >= 4);
 }
 
 
