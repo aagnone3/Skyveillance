@@ -10,9 +10,11 @@ public void initDisplay(boolean logging_data) {
   textSize(24);
   String msg = "";
   if (!logging_data) {
+    // Show the user that data will NOT be logged
     fill(255, 0, 0);
     msg = "WON'T LOG DATA";
   } else {
+    // Show the user that data WILL be logged
     fill(150, 255, 150);
     msg = "Will log data";
   }

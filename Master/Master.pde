@@ -44,6 +44,7 @@
    ips.add("192.168.1.1");
    ips.add("192.168.1.2");
    ips.add("192.168.1.3");
+   ips.add("192.168.1.4");
    
    got_all_responses = false;
    line_sep_count = 0;
@@ -115,6 +116,7 @@
  void receive(byte[] rcvd_data, String ip, int port) {
    if (rcvd_data.length == 10 && !rcvd.contains(ip)) {
      // Add ip to the received list
+     println(ip);
      rcvd.add(ip);
      float reading = bytesToFloat(rcvd_data, 4);
      data.set(ip, reading);

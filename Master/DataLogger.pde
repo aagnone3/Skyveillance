@@ -5,7 +5,6 @@ import java.io.*;
 public class DataLogger {
  
   private PrintWriter data_log;
-  private PrintWriter general_log;
   private boolean log_data;
   
   public DataLogger(boolean log_data) {
@@ -18,9 +17,14 @@ public class DataLogger {
   
   
   public void writeLogHeaders() {
-    data_log.println("Pin Voltage A,Pin Voltage B,Pin Voltage C," +
-                   "Distance A,Distance B,Distance C," +
-                   "Position Estimate");
+    String pin_voltage_headers = "",
+           distance_headers = "";
+    for (int i = 0; i < NUM_CLIENTS; i += 1) {
+      pin_voltage_headers += "Pin Voltage " + char(65 + i) + ",";
+      distance_headers += "Distance " + char(65 + i) + ",";
+    }
+    
+    data_log.println(pin_voltage_headers + distance_headers + "Position Estimate");
   }
   
   public void logData(String descriptor, FloatDict voltages) {
@@ -50,18 +54,23 @@ public class DataLogger {
   }
   
   public void openLogs() {
+    // Get timestamp that will be prepended to whatever filename the user chooses
      String time = str(month()) + "_" + str(day()) + "_" +
              str(hour()) + "_" + str(minute()) + "_" +
              str(second());
-     data_log = createWriter("Data/Data_Log_" + time + ".csv");
-     general_log = createWriter("Data/General_Log_" + time + ".txt");
+    // Get user string to add to the filenamefrom the user
+    String description = (String) javax.swing.JOptionPane.showInputDialog(null,
+                                          "Give a short description on the data being logged.",
+                                          "");
+    data_log = createWriter("Data/" + time + "_" + description + ".csv");
+     
+    if (data_log == null) {
+      println("Failed to create log file. You probably gave an inapprorpiate character in the description.");
+    }
   }
   
   public void closeLogs() {
     data_log.flush();
     data_log.close();
-    
-    general_log.flush();
-    general_log.close();
   }
 }
