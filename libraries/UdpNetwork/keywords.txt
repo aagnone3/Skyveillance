@@ -1,0 +1,40 @@
+#######################################
+# Syntax Coloring Map For Ethernet
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+UdpNetworkNode	KEYWORD1	Ethernet
+UdpNetworkServer	KEYWORD1	Ethernet
+UdpNetworkClient	KEYWORD1	Ethernet
+IP_Port_Pair	KEYWORD1	Ethernet
+DataConverter	KEYWORD1	Ethernet
+Message	KEYWORD1	Ethernet
+Protocol	KEYWORD1	Ethernet
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+status	KEYWORD2
+connect	KEYWORD2
+write	KEYWORD2
+available	KEYWORD2
+read	KEYWORD2
+peek	KEYWORD2
+flush	KEYWORD2
+stop	KEYWORD2
+connected	KEYWORD2
+begin	KEYWORD2
+beginPacket	KEYWORD2
+endPacket	KEYWORD2
+parsePacket	KEYWORD2
+remoteIP	KEYWORD2
+remotePort	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
