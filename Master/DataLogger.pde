@@ -20,23 +20,26 @@ public class DataLogger {
     String pin_voltage_headers = "",
            distance_headers = "";
     for (int i = 0; i < NUM_CLIENTS; i += 1) {
-      pin_voltage_headers += "Pin Voltage " + char(65 + i) + ",";
-      distance_headers += "Distance " + char(65 + i) + ",";
+      pin_voltage_headers += "V_ " + char(65 + i) + ",";
+      distance_headers += "Dist " + char(65 + i) + ",";
     }
     
-    data_log.println(pin_voltage_headers + distance_headers + "Position Estimate");
+    data_log.println(pin_voltage_headers + distance_headers
+        + "X (NL),Y (NL),Z (NL),Error (NL),X (L),Y (L),Z (L),Error (L)");
   }
   
   public void logData(String descriptor, FloatDict voltages) {
-    logData(descriptor, voltages, null, -9999.0);
+    logData(descriptor, voltages, null, null, null);
   }
   
-  public void logData(String descriptor, FloatDict voltages, double[] distances, double position_estimate) {
+  public void logData(String descriptor, FloatDict voltages, double[] distances, double[] nonlinear_results, double[] linear_results) {
     if (log_data) {
-      // Log pin voltage values
+      
+       // Log pin voltage values
        for (float val : voltages.values()) {
          data_log.print(val + ",");
        }
+       
        // Log distances
        if (distances != null) {
          for (int i = 0; i < distances.length; i += 1) {
@@ -48,7 +51,22 @@ public class DataLogger {
          }
        }
 
-       data_log.print(position_estimate);
+       // Log nonlinear least-squares triangulation results if available
+       if (nonlinear_results != null) {
+         data_log.print(nonlinear_results[0] + "," + nonlinear_results[1] + "," + nonlinear_results[2]
+                        + "," + nonlinear_results[3] + ",");
+       } else {
+         data_log.print(",,,,");
+       }
+       
+       // Log linear least-squares triangulation results if available
+       if (linear_results != null) {
+         data_log.print(linear_results[0] + "," + linear_results[1] + "," + linear_results[2]
+                        + "," + linear_results[3] + ",");
+       } else {
+         data_log.print(",,,,");
+       }
+       
        data_log.println(); 
     }
   }

@@ -2,7 +2,7 @@
  import hypermedia.net.*;
  
  // Number of clients
- final int NUM_CLIENTS = 3;
+ final int NUM_CLIENTS = 4;
  // Port number to send to for all clients
  final int DEST_PORT_NUM = 8888;
  // Timeout in ms for waiting for client responses to setting the noise floor
@@ -30,16 +30,26 @@
  // This makes it easier to know that the data values have been updated, in the event that all values
  // are equal to previous values
  int line_sep_count;
+ //
+ double[] distances;
+ // Solution vector for the NLLSQ triangulation algorithm
+ double[] x_nll;
+ // Solution vector for the LLSQ triangulation algorithm
+ double[] x_ll;
+ // Antenna locations
+ double[] antennas;
 
 
  void setup() {
-   size(300, 200);
+   size(500, 250);
    
    udp = new UDP( this, 6000 );  // create a new datagram connection on port 6000
    //udp.log( true );     // <-- printout the connection activity
    udp.listen( true );           // and wait for incoming message
    
    rcvd = new ArrayList<String>();
+   
+   // IP Addresses
    ips = new ArrayList<String>();
    ips.add("192.168.1.1");
    ips.add("192.168.1.2");
@@ -49,9 +59,35 @@
    got_all_responses = false;
    line_sep_count = 0;
    
+   // Initialize data to defaults
    data = new FloatDict();
    for (int i = 0; i < NUM_CLIENTS; i += 1) {
      data.set(ips.get(i), -999.0);
+   }
+   
+   // Initialize data for the triangulation algo
+   distances = new double[NUM_CLIENTS];
+   x_nll = new double[4];
+   x_ll = new double[4];
+   
+   // Antenna locations
+   if (NUM_CLIENTS >= 4) {
+     antennas = new double[NUM_CLIENTS * 3];
+     antennas[0] = 0.0;   // Coordinates of Antenna 1
+     antennas[1] = 0.0;   // Coordinates of Antenna 1
+     antennas[2] = 0.0;   // Coordinates of Antenna 1
+    
+     antennas[3] = 10.0;  // Coordinates of Antenna 2
+     antennas[4] = 0.0;   // Coordinates of Antenna 2
+     antennas[5] = 0.0;   // Coordinates of Antenna 2
+    
+     antennas[6] = 0.0;   // Coordinates of Antenna 3
+     antennas[7] = 10.0;  // Coordinates of Antenna 3
+     antennas[8] = 0.0;   // Coordinates of Antenna 3
+    
+     antennas[9] = 10.0;  // Coordinates of Antenna 4
+     antennas[10] = 10.0; // Coordinates of Antenna 4
+     antennas[11] = 1.0;  // Coordinates of Antenna 4
    }
    
    logger = new DataLogger(LOG_DATA);
@@ -76,15 +112,37 @@
      if (dataSuccessfullyCollected(DATA_TIMEOUT_MS)) {
        // Convert pin voltages to distances
        double[] distances = toDistances(data.valueArray());
-       // Triangulation
+       //double[] distances = {4*6.7082, 4*10.247, 4*8.0623, 4*10.77};
+       nll_estimate(distances);
+       ll_estimate(distances);
        
        // Log all data for this iteration
-       logger.logData("Everything", data, distances, 0.0);
+       logger.logData("Everything", data, distances, x_nll, x_ll);
      }
      // Else re-poll for data
   
      delay(2000);
    }
+ }
+ 
+ void ll_estimate(double[] distances) {
+   locateLLSQ(NUM_CLIENTS, antennas, distances, x_ll); // Bad performance for 4 antennas with relative distances
+   println();
+   println("Solution given by LLSQ function is:");
+   matrixPrint(x_ll, 4, 1, "x (linear)");
+ }
+ 
+ void nll_estimate(double[] distances) {
+   // Initial guess for NLLSQ
+   x_nll[0] = 1.0;
+   x_nll[1] = 3.0;
+   x_nll[2] = 3.0;
+   x_nll[3] = 4.0;
+   
+   locateNLLSQ(NUM_CLIENTS, antennas, distances, x_nll);
+   println();
+   println("Solution given by NLLSQ function is:");
+   matrixPrint(x_nll, 4, 1, "x (nonlinear)");
  }
  
  void sendRequestsForData() {
