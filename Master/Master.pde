@@ -1,16 +1,26 @@
  //
  import hypermedia.net.*;
  
+ // Window width
+ int WINDOW_WIDTH;
+ // Window height
+int WINDOW_HEIGHT;
  // Number of clients
  final int NUM_CLIENTS = 4;
  // Port number to send to for all clients
  final int DEST_PORT_NUM = 8888;
  // Timeout in ms for waiting for client responses to setting the noise floor
- final int NOISE_FLOOR_TIMEOUT_MS = 10000;
+ final int NOISE_FLOOR_TIMEOUT_MS = 7000;
  // Timeout in ms for waiting for client responses for data
- final int DATA_TIMEOUT_MS = 3000;
+ final int DATA_TIMEOUT_MS = 300;
  // Flag to indicate whether or not we want to log data
  final boolean LOG_DATA = true;
+ //
+ final int NUM_POINTS_PER_AVERAGE = 5;
+ //
+ final int LOOP_DELAY = 120;
+ //
+ final float LOOP_FREQ = 1.0 / LOOP_DELAY;
  
  // UDP Handler
  UDP udp;
@@ -32,16 +42,28 @@
  int line_sep_count;
  //
  double[] distances;
+ //
+ FloatDict averages;
  // Solution vector for the NLLSQ triangulation algorithm
  double[] x_nll;
  // Solution vector for the LLSQ triangulation algorithm
  double[] x_ll;
  // Antenna locations
  double[] antennas;
+ //
+ float[] noise_floors;
+ //
+ int num_data_points;
+ //
+ boolean poll_data;
 
 
  void setup() {
-   size(500, 250);
+   size(1000, 800);
+   WINDOW_WIDTH = 1000;
+   WINDOW_HEIGHT = 1000;
+   
+   poll_data = false;
    
    udp = new UDP( this, 6000 );  // create a new datagram connection on port 6000
    //udp.log( true );     // <-- printout the connection activity
@@ -67,6 +89,17 @@
    
    // Initialize data for the triangulation algo
    distances = new double[NUM_CLIENTS];
+   averages = new FloatDict();
+   for (int i = 0; i < NUM_CLIENTS; i += 1) {
+     averages.set(ips.get(i), 0.0);
+   }
+   
+   noise_floors = new float[NUM_CLIENTS];
+   noise_floors[0] = 1.3098729 - 1.1632453;
+   noise_floors[1] = 1.2707722 - 1.1045943;
+   noise_floors[2] = 1.285435 - 1.1290323;
+   noise_floors[3] = 1.226784 - 1.0899316;
+
    x_nll = new double[4];
    x_ll = new double[4];
    
@@ -77,33 +110,30 @@
      antennas[1] = 0.0;   // Coordinates of Antenna 1
      antennas[2] = 0.0;   // Coordinates of Antenna 1
     
-     antennas[3] = 10.0;  // Coordinates of Antenna 2
+     antennas[3] = 0.9652;  // Coordinates of Antenna 2
      antennas[4] = 0.0;   // Coordinates of Antenna 2
      antennas[5] = 0.0;   // Coordinates of Antenna 2
     
      antennas[6] = 0.0;   // Coordinates of Antenna 3
-     antennas[7] = 10.0;  // Coordinates of Antenna 3
-     antennas[8] = 0.0;   // Coordinates of Antenna 3
+     antennas[7] = 0.9652;  // Coordinates of Antenna 3
+     antennas[8] = 0.7366;   // Coordinates of Antenna 3
     
-     antennas[9] = 10.0;  // Coordinates of Antenna 4
-     antennas[10] = 10.0; // Coordinates of Antenna 4
-     antennas[11] = 1.0;  // Coordinates of Antenna 4
+     antennas[9] = 0.9652;  // Coordinates of Antenna 4
+     antennas[10] = 0.9652; // Coordinates of Antenna 4
+     antennas[11] = 0.0;  // Coordinates of Antenna 4
    }
    
    logger = new DataLogger(LOG_DATA);
    initDisplay(LOG_DATA);
+   
+   num_data_points = 0;
  }
 
  // Do nothing automatically. Behavior is triggered via key presses.
  // See keyPressed() for more details.
- void draw() {}
- 
- // Called only when 's' or 'S' key entered
- void loop() {
-   
-   // Remain in an infinite loop, with only interrupt functions to alter code flow
-   while (true) {
-     printSeparator();
+ void draw() {
+   if (poll_data) {
+         printSeparator();
 
      // Poll all clients for data values
      sendRequestsForData();
@@ -111,17 +141,54 @@
      // Only perform data operations if all client responses were successfully received
      if (dataSuccessfullyCollected(DATA_TIMEOUT_MS)) {
        // Convert pin voltages to distances
-       double[] distances = toDistances(data.valueArray());
-       //double[] distances = {4*6.7082, 4*10.247, 4*8.0623, 4*10.77};
-       nll_estimate(distances);
-       ll_estimate(distances);
+       float[] values = data.valueArray();
+       values[0] -= 0.3;
+
+       // TODO remove random values after testing
+       //float[] random = new float[NUM_CLIENTS];
+       //for (int i = 0; i < random.length; i += 1) {
+       //  random[i] = 1.2 + (float)(Math.random() * 0.2);
+       //}
+       //values = random;
        
-       // Log all data for this iteration
-       logger.logData("Everything", data, distances, x_nll, x_ll);
+       //double[] distances = toDistances(values);
+       println(values);
+       //println(distances);
+       updateQuadrantEstimate(values);
+       //updateRunningAverage(values);
+       
+       // Log data if applicable
+       num_data_points += 1;
+       //if (num_data_points == NUM_POINTS_PER_AVERAGE) {
+         // Update plot with results
+         plotPinVoltages(values);
+         plotDistances(distances);
+         //estimatePosition();
+       
+         logger.logData("Everything", averages, distances, null, null);
+       
+         //num_data_points = 0;
+         //for (int i = 0; i < NUM_CLIENTS; i += 1) {
+           //averages.set(ips.get(i), 0.0);
+         //}
+       //}
      }
-     // Else re-poll for data
-  
-     delay(2000);
+     delay(LOOP_DELAY);
+     //delay(3000);
+   }
+ }
+ 
+ void estimatePosition() {
+   ll_estimate(distances);
+   nll_estimate(distances);
+ }
+ 
+ // Called only when 's' or 'S' key entered
+ void loop() {
+   
+   // Remain in an infinite loop, with only interrupt functions to alter code flow
+   while (true) {
+
    }
  }
  
@@ -148,6 +215,7 @@
  void sendRequestsForData() {
    // Clear list of ip's we have received data from
    rcvd.clear();
+   got_all_responses = false;
     
    // Send new requests for data to all clients
    for (String ip : ips) {
@@ -161,6 +229,11 @@
      if (millis() - start_time > timeout) {
        // Timeout case
        // Announce the timeout, and return false to repoll for data
+       for (int i = 0; i < NUM_CLIENTS; i += 1) {
+         if (!rcvd.contains(ips.get(i))) {
+           println("Missing " + ips.get(i));
+         }
+       }
        println("Timeout!");
        return false;
      }
@@ -172,9 +245,11 @@
  }
 
  void receive(byte[] rcvd_data, String ip, int port) {
+   //print(ip);
    if (rcvd_data.length == 10 && !rcvd.contains(ip)) {
+     //println("...good");
      // Add ip to the received list
-     println(ip);
+     //println(ip);
      rcvd.add(ip);
      float reading = bytesToFloat(rcvd_data, 4);
      data.set(ip, reading);
@@ -182,8 +257,9 @@
      // Check to see if we have data from all clients
      if (rcvd.size() == NUM_CLIENTS) {
        got_all_responses = true;
-       println(data.valueArray());
      }
+   } else {
+     //println(str(rcvd_data));
    }
  }
  
@@ -214,9 +290,11 @@
     if (key == 'n' || key == 'N') {
       setNoiseFloors();
       logger.logData("Noise Floor", data);
+      println(data.valueArray());
+      noise_floors = data.valueArray();
       println("Noise floors set!");
     } else if (key == 's' || key == 'S') {
-      loop();
+      poll_data = true;
     }
  }
  

@@ -61,7 +61,7 @@ void loop() {
   readVoltage();
 
   // Wait for ADC to settle
-  delay(2);
+  delay(1);
 }
 
 

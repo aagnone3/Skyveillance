@@ -43,6 +43,7 @@ void setup() {
   Ethernet.begin(mac, ip);
   Udp.begin(local_port);
   Serial.begin(9600);
+  analogWrite(A0, 0);
 
   header[0] = '0';
   header[1] = '0';
@@ -53,7 +54,7 @@ void setup() {
 
 void loop() {
   // if there's data available, read a packet
-  if (messageReceived()) {
+  if (messageReceived() && num_data_points > MIN_DATA_POINTS) {
     processMessage();
   }
 
@@ -61,7 +62,7 @@ void loop() {
   readVoltage();
 
   // Wait for ADC to settle
-  delay(2);
+  delay(1);
 }
 
 

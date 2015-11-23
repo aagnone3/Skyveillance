@@ -11,7 +11,7 @@ byte mac[] = {
 };
 IPAddress ip(192, 168, 1, 1);
 unsigned int local_port = 8888;
-int analog_pin = A5;
+int analog_pin = A3;
 int packet_size;
 unsigned int num_data_points;
 const unsigned int MIN_DATA_POINTS = 100;
@@ -43,6 +43,7 @@ void setup() {
   Ethernet.begin(mac, ip);
   Udp.begin(local_port);
   Serial.begin(9600);
+  analogWrite(A0, 0);
 
   header[0] = '0';
   header[1] = '0';
@@ -61,7 +62,7 @@ void loop() {
   readVoltage();
 
   // Wait for ADC to settle
-  delay(2);
+  delay(1);
 }
 
 
@@ -92,7 +93,7 @@ void processMessage() {
         parseMessage();
         // Process the message, according to its header
         if (strcmp(header,H_REQ_PIN_VOLTAGE) == 0) {
-          Serial.print(num_data_points);
+          //Serial.println(num_data_points);
           //Serial.println("=====================");
           //Serial.print(num_data_points);Serial.print(" points -> ");Serial.println(max_reading * 5.0 / 1023); 
           // Send back data
@@ -115,7 +116,9 @@ void processMessage() {
 
 //
 void sendMaxReading() {
-  Serial.println("Sending reading");
+  Serial.print("Sending reading: ");
+  Serial.println(MSG_PIN_VOLTAGE);
+  Serial.println(max_reading * 5.0 / 1023);
     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
     Udp.write(MSG_PIN_VOLTAGE);
     Udp.write(dconv.floatToBytes(max_reading * 5.0 / 1023));
@@ -183,5 +186,3 @@ boolean messageReceived() {
 boolean isValidMessage() {
   return (packet_size >= 4);
 }
-
-
