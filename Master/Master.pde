@@ -51,8 +51,6 @@ int WINDOW_HEIGHT;
  // Antenna locations
  double[] antennas;
  //
- float[] noise_floors;
- //
  int num_data_points;
  //
  boolean poll_data;
@@ -66,8 +64,7 @@ int WINDOW_HEIGHT;
    poll_data = false;
    
    udp = new UDP( this, 6000 );  // create a new datagram connection on port 6000
-   //udp.log( true );     // <-- printout the connection activity
-   udp.listen( true );           // and wait for incoming message
+   udp.listen(true);           // and wait for incoming message
    
    rcvd = new ArrayList<String>();
    
@@ -93,12 +90,6 @@ int WINDOW_HEIGHT;
    for (int i = 0; i < NUM_CLIENTS; i += 1) {
      averages.set(ips.get(i), 0.0);
    }
-   
-   noise_floors = new float[NUM_CLIENTS];
-   noise_floors[0] = 1.3098729 - 1.1632453;
-   noise_floors[1] = 1.2707722 - 1.1045943;
-   noise_floors[2] = 1.285435 - 1.1290323;
-   noise_floors[3] = 1.226784 - 1.0899316;
 
    x_nll = new double[4];
    x_ll = new double[4];
@@ -125,56 +116,48 @@ int WINDOW_HEIGHT;
    
    logger = new DataLogger(LOG_DATA);
    initDisplay(LOG_DATA);
-   
-   num_data_points = 0;
  }
 
  // Do nothing automatically. Behavior is triggered via key presses.
  // See keyPressed() for more details.
  void draw() {
    if (poll_data) {
-         printSeparator();
+       //delay(LOOP_DELAY);
+       delay(500);
+       
+       printSeparator();
 
-     // Poll all clients for data values
-     sendRequestsForData();
+       // Poll all clients for data values
+       sendRequestsForData();
      
-     // Only perform data operations if all client responses were successfully received
-     if (dataSuccessfullyCollected(DATA_TIMEOUT_MS)) {
-       // Convert pin voltages to distances
-       float[] values = data.valueArray();
-       values[0] -= 0.3;
+       // Only perform data operations if all client responses were successfully received
+       //if (dataSuccessfullyCollected(DATA_TIMEOUT_MS)) {
+         // Convert pin voltages to distances
+         float[] values = data.valueArray();
+         values[0] -= 0.3;
+         //double[] distances = toDistances(values);
+  
+         // TODO remove random values after testing
+         //float[] random = new float[NUM_CLIENTS];
+         //for (int i = 0; i < random.length; i += 1) {
+         //  random[i] = 0.8 + (float)(Math.random() * 1.0);
+         //}
+         float[] custom = new float[4];
+         custom[0] = 1.1;
+         custom[1] = 1.1;
+         custom[2] = 1.1;
+         custom[3] = 1.0;
+         values = custom;
 
-       // TODO remove random values after testing
-       //float[] random = new float[NUM_CLIENTS];
-       //for (int i = 0; i < random.length; i += 1) {
-       //  random[i] = 1.2 + (float)(Math.random() * 0.2);
-       //}
-       //values = random;
-       
-       //double[] distances = toDistances(values);
-       println(values);
-       //println(distances);
-       updateQuadrantEstimate(values);
-       //updateRunningAverage(values);
-       
-       // Log data if applicable
-       num_data_points += 1;
-       //if (num_data_points == NUM_POINTS_PER_AVERAGE) {
+         updatePositionEstimate(values);
+         
          // Update plot with results
          plotPinVoltages(values);
-         plotDistances(distances);
-         //estimatePosition();
-       
+         //plotDistances(distances);
+  
+         // Log data
          logger.logData("Everything", averages, distances, null, null);
-       
-         //num_data_points = 0;
-         //for (int i = 0; i < NUM_CLIENTS; i += 1) {
-           //averages.set(ips.get(i), 0.0);
-         //}
        //}
-     }
-     delay(LOOP_DELAY);
-     //delay(3000);
    }
  }
  
@@ -291,8 +274,6 @@ int WINDOW_HEIGHT;
       setNoiseFloors();
       logger.logData("Noise Floor", data);
       println(data.valueArray());
-      noise_floors = data.valueArray();
-      println("Noise floors set!");
     } else if (key == 's' || key == 'S') {
       poll_data = true;
     }

@@ -1,11 +1,11 @@
 
 // Constant data members
-public final float OFFSET_X = 50.0;
+public final float OFFSET_X = 100.0;
 public final float OFFSET_Y = 300.0;
 public final float X_INCREMENT = 10.0;
 public final float MAX_VOLTAGE = 1.8;
 public final float HEIGHT = 200.0;
-public final float WIDTH = 400;
+public final float WIDTH = 800;
 public final float TOP_Y = OFFSET_Y - HEIGHT;
 public final float PIXELS_PER_VOLT = HEIGHT / MAX_VOLTAGE;
 public final int NUM_X_POINTS = (int)(WIDTH / X_INCREMENT) - 1;
@@ -32,10 +32,15 @@ void initPinVoltagePlotting() {
   // Write plot title and axis labels
   stroke(0);
   fill(0);
+  // Title
   textSize(18);
-  text("Pin Voltage Samples", OFFSET_X + (WIDTH / 5), 75);
+  text("Pin Voltage Samples", OFFSET_X + (WIDTH / 2.5), 85);
+  // X Axis Labels
   textSize(10);
   text("Samples", OFFSET_X + (WIDTH/2), OFFSET_Y + 15);
+  // Y Axis Labels
+  text("Pin Voltage", OFFSET_X - 90, OFFSET_Y - (HEIGHT/2));
+  text("[V]", OFFSET_X - 70, OFFSET_Y - (HEIGHT/2) + 10);
   
   // Print y axis tick marks
   for (float v = Y_AXIS_TICK; v < MAX_VOLTAGE; v += Y_AXIS_TICK) {

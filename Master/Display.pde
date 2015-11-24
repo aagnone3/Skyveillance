@@ -18,9 +18,8 @@ public void initDisplay(boolean logging_data) {
   line(0, 50, WINDOW_WIDTH, 50);
   
   initPinVoltagePlotting();
-  initDistPlotting();
   //line(250,350,400,350);
-  initQuadrantEstimation();
+  initPositionEstimation();
   
   /*
   textSize(24);
