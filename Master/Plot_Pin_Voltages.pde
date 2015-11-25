@@ -19,8 +19,8 @@ public float last_x;
 public float[] last_pin_voltages;
 public float[] previously_removed;
 
+// Various initialization
 void initPinVoltagePlotting() {
-  
   // Initialize data as necessary
   pin_voltages = new LinkedList<float[]>();
   last_pin_voltages = new float[NUM_CLIENTS];
@@ -42,17 +42,20 @@ void initPinVoltagePlotting() {
   text("Pin Voltage", OFFSET_X - 90, OFFSET_Y - (HEIGHT/2));
   text("[V]", OFFSET_X - 70, OFFSET_Y - (HEIGHT/2) + 10);
   
-  // Print y axis tick marks
+  // Print y axis tick marks for left and right side
   for (float v = Y_AXIS_TICK; v < MAX_VOLTAGE; v += Y_AXIS_TICK) {
-    line(OFFSET_X - 5, OFFSET_Y - (v * PIXELS_PER_VOLT), OFFSET_X, OFFSET_Y - (v * PIXELS_PER_VOLT));
+    line(OFFSET_X - 2, OFFSET_Y - (v * PIXELS_PER_VOLT), OFFSET_X + 3, OFFSET_Y - (v * PIXELS_PER_VOLT));
+    line(OFFSET_X + WIDTH - 3, OFFSET_Y - (v * PIXELS_PER_VOLT), OFFSET_X + WIDTH + 5, OFFSET_Y - (v * PIXELS_PER_VOLT));
     String s = str(v);
     text(s.substring(0, 3), OFFSET_X - 5 - 17, OFFSET_Y - (v * PIXELS_PER_VOLT) + 3);
+    text(s.substring(0, 3), OFFSET_X  + WIDTH + 5, OFFSET_Y - (v * PIXELS_PER_VOLT) + 3);
   }
   
   // Draw the actual axes
   drawPinVoltageAxes();
 }
 
+// Redraw the plot axes
 void drawPinVoltageAxes() {
   stroke(0);
   fill(0);
@@ -61,14 +64,18 @@ void drawPinVoltageAxes() {
        OFFSET_X, OFFSET_Y);
   line(OFFSET_X, OFFSET_Y,
        OFFSET_X + WIDTH, OFFSET_Y);
+  line(OFFSET_X + WIDTH, TOP_Y,
+       OFFSET_X + WIDTH, OFFSET_Y);
 }
 
+// Blank out the plot for replotting purposes
 void blankOutPinVoltageXYPlane() {
   fill(BACKGROUND_COLOR);
   stroke(BACKGROUND_COLOR);
   rect(OFFSET_X+1, TOP_Y, WIDTH-1, OFFSET_Y - TOP_Y - 1);
 }
 
+// Plot the new set of data points
 public void plotPinVoltages(float[] new_points) {
   handleOldPinVoltages();
   addNewPinVoltage(new_points);
@@ -76,6 +83,7 @@ public void plotPinVoltages(float[] new_points) {
   drawPinVoltageAxes();
 }
 
+// Add a new data point
 void addNewPinVoltage(float[] new_points) { 
   // Add the new data point
   // Saturate value to MAX_DISTANCE if out of range for plot
@@ -88,6 +96,8 @@ void addNewPinVoltage(float[] new_points) {
   pin_voltages.addLast(arr);
 }
 
+// Process the phasing out of data points for correct behavior
+// of the moving plot
 void handleOldPinVoltages() {
   // Remove oldest data point if we are at our # data points limit
   if (pin_voltages.size() == NUM_X_POINTS) {
@@ -110,6 +120,7 @@ void handleOldPinVoltages() {
   }
 }
 
+// Plot all relevant data points
 void plotAllPinVoltages() {
   // Set initial x coordinates for plotting
   last_x = OFFSET_X;

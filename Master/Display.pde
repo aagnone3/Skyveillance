@@ -1,12 +1,12 @@
 import processing.core.*;
 import java.util.LinkedList;
 
-// Constants
+// Background color
 public final int BACKGROUND_COLOR = 250;
+// Colors to use for plotting
 public final int[] COLORS = new int[] {0xFFFF0000, 0xFF00FF00, 0xFF0000FF, 0xFFFF00FF};
 
-// Non-constant data members
-
+// Various initialization
 public void initDisplay(boolean logging_data) {
   stroke(0);
   fill(0);
@@ -20,26 +20,4 @@ public void initDisplay(boolean logging_data) {
   initPinVoltagePlotting();
   //line(250,350,400,350);
   initPositionEstimation();
-  
-  /*
-  textSize(24);
-  String msg = "";
-  if (!logging_data) {
-    // Show the user that data will NOT be logged
-    fill(255, 0, 0);
-    msg = "WON'T LOG DATA";
-  } else {
-    // Show the user that data WILL be logged
-    fill(150, 255, 150);
-    msg = "Will log data";
-  }
-  text(msg, 10, 100);
-  
-  fill(0);
-  
-  text("** For logging to work **", 10, 150);
-  textSize(18);
-  text("  1) Click the 'x' button of this window", 10, 180);
-  text("  2) Click the stop button of the script window", 10, 200);
-  */
 }

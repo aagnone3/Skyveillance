@@ -1,7 +1,9 @@
+/*
 import java.lang.Math;
 
 public final float LAMBDA = (float)(3e8 / 2.4e9);
 public final float[] CONSTANTS = {28.97, 20.35, 22.02, 15.83};
+
 
 public double voltageToDistance(float voltage, double constant) {
   //println(voltage);
@@ -31,3 +33,4 @@ public void updateRunningAverage(float[] new_data_points) {
     averages.set(ips.get(i),(averages.get(ips.get(i)) * num_data_points + new_data_points[i]) / (num_data_points + 1));
   }
 }
+*/

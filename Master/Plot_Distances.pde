@@ -19,8 +19,8 @@ public float dist_last_x;
 public float[] dist_last_data;
 public float[] dist_prev_removed;
 
+// Various initialization
 void initDistPlotting() {
-  
   // Initialize data as necessary
   dist_data = new LinkedList<float[]>();
   dist_last_data = new float[NUM_CLIENTS];
@@ -48,6 +48,7 @@ void initDistPlotting() {
   drawDistanceAxes();
 }
 
+// Redraw the axes for the distance plot
 void drawDistanceAxes() {
   stroke(0);
   fill(0);
@@ -58,6 +59,7 @@ void drawDistanceAxes() {
        DIST_OFFSET_X + DIST_PLOT_WIDTH, DIST_OFFSET_Y);
 }
 
+// Plot the current set of data points
 public void plotDistances(double[] new_points) {
   handleOldDataPoints();
   addNewDistances(new_points);
@@ -65,6 +67,8 @@ public void plotDistances(double[] new_points) {
   drawDistanceAxes();
 }
 
+// Process the phasing out of data points for correct behavior
+// of the moving plot
 void handleOldDataPoints() {
   // Remove oldest data point if we are at our # data points limit
   if (dist_data.size() == DIST_NUM_X_POINTS) {
@@ -86,12 +90,14 @@ void handleOldDataPoints() {
   } 
 }
 
+// Blank out the plot for replotting purposes
 void blankOutDistanceXYPlane() {
   fill(BACKGROUND_COLOR);
   stroke(BACKGROUND_COLOR);
   rect(DIST_OFFSET_X+1, DIST_MAX_Y, DIST_PLOT_WIDTH-1, DIST_OFFSET_Y - DIST_MAX_Y - 1);
 }
 
+// Add the new set of data points
 void addNewDistances(double[] new_points) {
   // Add the new data point
   // Saturate value to MAX_DISTANCE if out of range for plot
@@ -102,10 +108,12 @@ void addNewDistances(double[] new_points) {
   dist_data.addLast(arr); 
 }
 
+// Determine whether the data point is in range for the plot
 boolean dataPointInRange(double point) {
   return point > 0 && point < MAX_DISTANCE;
 }
 
+// Plot all data points
 void plotAllDataPoints() {
   // Set initial x coordinates for plotting
   dist_last_x = DIST_OFFSET_X;

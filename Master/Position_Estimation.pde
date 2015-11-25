@@ -1,31 +1,73 @@
+// Constants
 public final float EST_X_OFFSET = 250.0;
 public final float EST_Y_OFFSET = 350.0;
 public final float EST_WIDTH = 400.0;
 public final float EST_HEIGHT = 400.0;
-public final int HYSTERESIS_TIMEOUT = 1500;
+public final int HYSTERESIS_MAX_COUNT = 3;
 public final float CLOSE_THRESH = 0.1;
 public final float FAR_THRESH = 0.2;
 
+// Non-constants
 public int new_estimate_hysteresis;
-public int last_temp_estimate;
-public int current_official_estimate;
-public boolean in_hysteresis;
+public int last_square_est;
+public int official_est;
+public int hysteresis_count;
 
+// Various initialization
 public void initPositionEstimation() {
   new_estimate_hysteresis = millis();
-  current_official_estimate = 1;
-  last_temp_estimate = 1;
-  in_hysteresis = false;
+  official_est = 1;
+  hysteresis_count = 0;
+  last_square_est = 1;
   drawEstimationGrid();
 }
 
+// Update the estimated position, using a simple hysteresis technique (counting)
 public void updatePositionEstimate(float[] voltages) {
   // Get array index of max pin voltage
   int index = indexOfMaxPinVoltage(voltages);
+  // Get current estimate based on this round of pin voltages
   int square = getCurrentEstimate(index, voltages);
-  confirmEstimate(square, COLORS[index]);
+  // Decide whether or not to change the official position estimate
+  if (validEstimate(square)) {
+    newEstimate(square, COLORS[index]);
+  }
 }
 
+// Determine whether the current estimate should be reflected as the official estimate.
+// Uses a simple hysteresis counter to only update the official estimate after the
+// same position has been estimated for HYSTERESIS_MAX_COUNT times.
+public boolean validEstimate(int square_est) {
+  boolean valid = false;
+  if (square_est != official_est) {
+    // Increment the hysteresis counter if we receive the same estimate
+    // that we just had (but is different from the official estimate.
+    // Otherwise, reset the hysteresis counter to 0
+    if (square_est == last_square_est) {
+      hysteresis_count += 1;
+      if (hysteresis_count == HYSTERESIS_MAX_COUNT) {
+        println("Changing estimate to " + square_est);
+        // Change the official position estimate
+        official_est = square_est;
+        hysteresis_count = 0;
+        valid = true;
+      } else {
+        println("Count incremented, but not at threshold count value.");
+      }
+    } else {
+      println("New different estimate, resetting count to 1");
+      hysteresis_count = 1;
+    }
+    
+    last_square_est = square_est;
+  } else {
+    hysteresis_count = 0;
+  }
+  
+  return valid;
+}
+
+// Computes the current square estimated from the antenna pin voltages
 public int getCurrentEstimate(int max_index, float[] voltages) {
   // Compare the difference in magnitude between other pin voltages
   // This will tell you whether the estimate should be in a node's region,
@@ -68,6 +110,8 @@ public int getCurrentEstimate(int max_index, float[] voltages) {
   return squareEstimate;
 }
 
+// Return the square index corresponding to the
+// antenna node index given
 public int squareWithNode(int indx) {
   if (indx == 0) {
     return 1;
@@ -79,6 +123,8 @@ public int squareWithNode(int indx) {
   return 9;
 }
 
+// Return the square index of the transition region corresponding
+// to the two antenna indices given
 public int transitionRegionBetween(int indx1, int indx2) {
   int regionIndx = -1;
   if (indx1 == 0 && indx2 == 2) {
@@ -95,6 +141,8 @@ public int transitionRegionBetween(int indx1, int indx2) {
   return regionIndx;
 }
 
+// Return the antenna index with the highest antenna
+// pin voltage.
 public int indexOfMaxPinVoltage(float[] voltages) {
   int max_index = 0;
   double max_pin_voltage = voltages[0];
@@ -107,6 +155,8 @@ public int indexOfMaxPinVoltage(float[] voltages) {
   return max_index;
 }
 
+// Return the antenna indices of the squares that are
+// opposite from the antenna index given.
 public int[] indicesOfOpposites(int indx) {
   int[] indices = new int[2];
   if (indx == 0) {
@@ -125,34 +175,15 @@ public int[] indicesOfOpposites(int indx) {
   return indices;
 }
 
-/*
-public void assessCurrentEstimate(int temp_estimate) {
-  if (temp_estimate != current_official_estimate) {
-    if (in_hysteresis && millis() - new_estimate_hysteresis > HYSTERESIS_TIMEOUT) {
-      // New guess has been made for longer than HYSTERESIS_TIMEOUT, change the
-      // official position estimate
-      newEstimate(temp_estimate);
-    } else if (!in_hysteresis) {
-      in_hysteresis = true;
-      new_estimate_hysteresis = millis();
-    }
-    // Else keep waiting
-  } else {
-    // Temporary estimate is the same as the current official estimate.
-    // Kill the change hysteresis timer if it is running
-    if (in_hysteresis) {
-      in_hysteresis = false;
-    }
-  }
-}
-*/
-
-public void confirmEstimate(int squareNum, int fillColor) {
+// Update the official estimate, and reflect this in
+// the displayed grid
+public void newEstimate(int squareNum, int fillColor) {
   clearSquares();
   fillSquare(squareNum, fillColor);
   drawEstimationGrid();
 }
 
+// Redraw the position estimation grid
 public void drawEstimationGrid() {
   stroke(0);
   fill(0);
@@ -182,6 +213,7 @@ public void drawEstimationGrid() {
        EST_X_OFFSET + EST_WIDTH, EST_Y_OFFSET + (2 * EST_HEIGHT / 3));
 }
 
+// Clear the display of all square for re-display purposes
 public void clearSquares() {
   // White out all squares
   for (int i = 1; i < 10; i += 1) {
@@ -217,8 +249,8 @@ public void clearSquares() {
   }
 }
 
+// Fill the given square with the given color.
 public void fillSquare(int squareNum, int fillColor) {
-  
   // Fill estimated square appropriately
   if (squareNum == 1) {
     fill(COLORS[0]);
@@ -282,8 +314,23 @@ public void fillSquare(int squareNum, int fillColor) {
 }
 
 /*
-public final float EST_X_OFFSET = 250.0;
-public final float EST_Y_OFFSET = 350.0;
-public final float EST_WIDTH = 400.0;
-public final float EST_HEIGHT = 400.0;
+public void assessCurrentEstimate(int temp_estimate) {
+  if (temp_estimate != official_est) {
+    if (in_hysteresis && millis() - new_estimate_hysteresis > HYSTERESIS_TIMEOUT) {
+      // New guess has been made for longer than HYSTERESIS_TIMEOUT, change the
+      // official position estimate
+      newEstimate(temp_estimate);
+    } else if (!in_hysteresis) {
+      in_hysteresis = true;
+      new_estimate_hysteresis = millis();
+    }
+    // Else keep waiting
+  } else {
+    // Temporary estimate is the same as the current official estimate.
+    // Kill the change hysteresis timer if it is running
+    if (in_hysteresis) {
+      in_hysteresis = false;
+    }
+  }
+}
 */

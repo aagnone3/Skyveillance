@@ -2,6 +2,7 @@ import processing.core.*;
 import processing.data.*;
 import java.io.*;
 
+// Constructor
 public class DataLogger {
  
   private PrintWriter data_log;
@@ -15,7 +16,7 @@ public class DataLogger {
     }
   }
   
-  
+  // Write the log headers to the file
   public void writeLogHeaders() {
     String pin_voltage_headers = "",
            distance_headers = "";
@@ -28,16 +29,18 @@ public class DataLogger {
         + "X (NL),Y (NL),Z (NL),Error (NL),X (L),Y (L),Z (L),Error (L)");
   }
   
-  public void logData(String descriptor, FloatDict voltages) {
+  // Log the current supplied data to the file
+  public void logData(String descriptor, float[] voltages) {
     logData(descriptor, voltages, null, null, null);
   }
   
-  public void logData(String descriptor, FloatDict voltages, double[] distances, double[] nonlinear_results, double[] linear_results) {
+  // Log the current supplied data to the file
+  public void logData(String descriptor, float[] voltages, double[] distances, double[] nonlinear_results, double[] linear_results) {
     if (log_data) {
       
        // Log pin voltage values
-       for (float val : voltages.values()) {
-         data_log.print(val + ",");
+       for (int i = 0; i < voltages.length; i += 1) {
+         data_log.print(voltages[i] + ",");
        }
        
        // Log distances
@@ -71,6 +74,7 @@ public class DataLogger {
     }
   }
   
+  // Open all applicable logs
   public void openLogs() {
     // Get timestamp that will be prepended to whatever filename the user chooses
      String time = str(month()) + "_" + str(day()) + "_" +
@@ -87,6 +91,7 @@ public class DataLogger {
     }
   }
   
+  // Close all applicable logs
   public void closeLogs() {
     data_log.flush();
     data_log.close();
