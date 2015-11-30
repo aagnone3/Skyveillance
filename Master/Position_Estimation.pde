@@ -4,8 +4,8 @@ public final float EST_Y_OFFSET = 350.0;
 public final float EST_WIDTH = 400.0;
 public final float EST_HEIGHT = 400.0;
 public final int HYSTERESIS_MAX_COUNT = 3;
-public final float CLOSE_THRESH = 0.1;
-public final float FAR_THRESH = 0.2;
+public final float CLOSE_THRESH = 0.05;
+public final float FAR_THRESH = 0.15;
 
 // Non-constants
 public int new_estimate_hysteresis;
@@ -29,9 +29,9 @@ public void updatePositionEstimate(float[] voltages) {
   // Get current estimate based on this round of pin voltages
   int square = getCurrentEstimate(index, voltages);
   // Decide whether or not to change the official position estimate
-  if (validEstimate(square)) {
+  //if (validEstimate(square)) {
     newEstimate(square, COLORS[index]);
-  }
+  //}
 }
 
 // Determine whether the current estimate should be reflected as the official estimate.
@@ -72,39 +72,80 @@ public int getCurrentEstimate(int max_index, float[] voltages) {
   // Compare the difference in magnitude between other pin voltages
   // This will tell you whether the estimate should be in a node's region,
   //   or in between the regions of two nodes
-  float[] differences = new float[NUM_CLIENTS - 1];
-  int difIndx = 0,
-      numCloseNodes = 0,
+  ArrayList<DataIndexPair> differences = new ArrayList<DataIndexPair>();
+  
+  int numCloseNodes = 0,
       numFarNodes = 0,
       squareEstimate = 0;
   for (int i = 0; i < NUM_CLIENTS; i += 1) {
-    if (i != max_index) {
-      differences[difIndx] = voltages[max_index] - voltages[i];
-      if (differences[difIndx] < CLOSE_THRESH) {
+    if (i == max_index) {
+      differences.add(new DataIndexPair(0.0, i));
+    } else {
+      float cur_diff = voltages[max_index] - voltages[i];
+      differences.add(new DataIndexPair(cur_diff, i));
+      if (cur_diff < CLOSE_THRESH) {
         numCloseNodes += 1;
-      } else if (differences[difIndx] > FAR_THRESH) {
+      } else if (cur_diff > FAR_THRESH) {
         numFarNodes += 1;
       }
-      difIndx++;
     }
   }
   
+  // Sort ascending order
+  //IndexComparator comp = new IndexComparator();
+  java.util.Collections.sort(differences);
+  
+  
+  if (differences.get(1).data < CLOSE_THRESH) {
+    if (differences.get(2).data < CLOSE_THRESH) {
+      if (differences.get(3).data < CLOSE_THRESH) {
+        // Middle
+        println("Middle");
+        squareEstimate = 5;
+      } else {
+        // Middle or corner
+        println("Weird case, defaulting to middle");
+        squareEstimate = 5;
+      }
+    } else {
+      // Between
+      println(differences.get(0).index);
+      println("Between " + max_index + " and " + differences.get(1).index);
+      squareEstimate = transitionRegionBetween(max_index, differences.get(1).index);
+    }
+  } else {
+    // Node with max voltage
+    println("Right on " + max_index);
+    squareEstimate = squareWithNode(max_index);
+  }
+  
+  
+  /*
   if (numFarNodes == 3) {
     // Estimate is the region which contains the node with the max pin voltage
     squareEstimate = squareWithNode(max_index);
+    println("3 far ");
   } else if (numFarNodes == 2) {
+    println("2 far ");
     // Estimate is the region between one of the two other nodes
     int[] oppositeNodeIndices = indicesOfOpposites(max_index);
+    boolean found = false;
     for (int i = 0; i < oppositeNodeIndices.length; i += 1) {
       if (voltages[max_index] - voltages[oppositeNodeIndices[i]] < CLOSE_THRESH) {
         // Estimate is the region between these two nodes
         squareEstimate = transitionRegionBetween(max_index, oppositeNodeIndices[i]);
+        found = true;
       }
+    }
+    if (!found) {
+      squareEstimate = squareWithNode(max_index);
     }
   } else {
     // Estimate center node
     squareEstimate = 5;
+    print("three");
   }
+  */
   
   println(squareEstimate);
   return squareEstimate;
@@ -125,7 +166,16 @@ public int squareWithNode(int indx) {
 
 // Return the square index of the transition region corresponding
 // to the two antenna indices given
-public int transitionRegionBetween(int indx1, int indx2) {
+public int transitionRegionBetween(int temp1, int temp2) {
+  int indx1, indx2;
+  if (temp1 > temp2) {
+    indx1 = temp2;
+    indx2 = temp1;
+  } else {
+    indx1 = temp1;
+    indx2 = temp2;
+  }
+
   int regionIndx = -1;
   if (indx1 == 0 && indx2 == 2) {
     regionIndx = 4;

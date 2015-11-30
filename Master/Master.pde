@@ -18,7 +18,7 @@ int WINDOW_HEIGHT;
  // Delay amount for official use
  final int LOOP_DELAY = 120;
  // Delay amount for debugging
- final int DEBUG_DELAY = 1000;
+ final int DEBUG_DELAY = 500;
  // Loop frequency
  final float LOOP_FREQ = 1.0 / LOOP_DELAY;
  
@@ -113,8 +113,8 @@ int WINDOW_HEIGHT;
  // See keyPressed() for more details.
  void draw() {
    if (poll_data) {
-       //delay(LOOP_DELAY);
-       delay(DEBUG_DELAY);
+       delay(LOOP_DELAY);
+       //delay(DEBUG_DELAY);
        
        printSeparator();
 
@@ -122,18 +122,19 @@ int WINDOW_HEIGHT;
        sendRequestsForData();
      
        // Only perform data operations if all client responses were successfully received
-       //if (dataSuccessfullyCollected(DATA_TIMEOUT_MS)) {
+       if (dataSuccessfullyCollected(DATA_TIMEOUT_MS)) {
          // Convert pin voltages to distances
          float[] values = data.valueArray();
-         values[0] -= 0.3;
          //double[] distances = toDistances(values);
   
+         /*
          // TODO remove random values after testing
          float[] random = new float[NUM_CLIENTS];
          for (int i = 0; i < random.length; i += 1) {
            random[i] = 0.8 + (float)(Math.random() * 1.0);
          }
          values = random;
+         */
 
          // Update estimated square location of the signal's source
          updatePositionEstimate(values);
@@ -143,7 +144,7 @@ int WINDOW_HEIGHT;
   
          // Log data
          logger.logData("Everything", values, null, null, null);
-       //}
+       }
    }
  }
  
